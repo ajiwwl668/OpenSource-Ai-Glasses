@@ -10,9 +10,11 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <ifaddrs.h>//is_wifi_connected专用
 #include <netinet/in.h>      // 定义 sockaddr_in 结构体
 #include <arpa/inet.h>       // 网络地址转换函数
+#include <net/if.h>          // 定义 IFF_UP 和 IFF_RUNNING 标志
 
 #define GPIO_SYSFS_PATH "/sys/class/gpio"
 #define GPIO_DEBUG_PATH "/sys/kernel/debug/gpio"
@@ -44,6 +46,37 @@ static int start_ai_client();
 static int stop_ai_client();
 static int is_ai_client_running();
 
+// 获取wlan0的IP地址
+char* get_wlan0_ip() {
+    static char ip_str[INET_ADDRSTRLEN] = "0.0.0.0";
+    struct ifaddrs *ifaddr, *ifa;
+    
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return ip_str;
+    }
+    
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET &&
+            strcmp(ifa->ifa_name, "wlan0") == 0) {
+            
+            // 检查网卡是否处于UP状态且正在运行
+            if (!(ifa->ifa_flags & IFF_UP) || !(ifa->ifa_flags & IFF_RUNNING)) {
+                continue;
+            }
+            
+            struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+            if (sa->sin_addr.s_addr != 0) {
+                inet_ntop(AF_INET, &(sa->sin_addr), ip_str, INET_ADDRSTRLEN);
+                break;
+            }
+        } 
+    }
+    
+    freeifaddrs(ifaddr);
+    return ip_str;
+}
+
 // 检查wlan0是否有IP地址
 int is_wifi_connected() {
     struct ifaddrs *ifaddr, *ifa;
@@ -55,16 +88,31 @@ int is_wifi_connected() {
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET &&
             strcmp(ifa->ifa_name, "wlan0") == 0) {
+            // 检查网卡是否处于UP状态且正在运行
+            if (!(ifa->ifa_flags & IFF_UP) || !(ifa->ifa_flags & IFF_RUNNING)) {
+                continue;
+            }
             struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
             if (sa->sin_addr.s_addr != 0) {
                 connected = 1;
                 break;
             }
-        }
+        } 
     }
     freeifaddrs(ifaddr);
     return connected;
 }
+
+void Start_wifi(){
+    int Wifi_status = 0;
+    system("insmod /oem/usr/ko/cfg80211.ko");
+    system("insmod /oem/usr/ko/rtl8723ds.ko");
+    system("wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf");
+    system("ifconfig wlan0 up");
+    system("udhcpc -i wlan0");
+}
+
+
 
 // 导出GPIO
 static int export_gpio(int gpio_number) {
@@ -107,12 +155,12 @@ static int set_gpio_direction(int gpio_number, const char *direction) {
     fd = open(path, O_WRONLY);
     if (fd < 0) {
         // 使用fprintf到stderr，避免输出到其他地方
-        fprintf(stderr, "无法打开direction文件: %s\n", path);
+        printf("无法打开direction文件:\n");
         return -1;
     }
     
     if (write(fd, direction, strlen(direction)) < 0) {
-        fprintf(stderr, "设置GPIO方向失败: %s\n", path);
+        printf("设置GPIO方向失败:\n");
         close(fd);
         return -1;
     }
@@ -299,9 +347,9 @@ static int start_ai_client() {
         // 执行ai_client_socket
         execl("/usr/bin/ai_client_socket", "ai_client_socket",
               "--enable-gpio", "--enable-upload", 
-              "--server", "your_server_ip", "--port", "your_port",
+              "--server", "47.99.87.250", "--port", "7860",
               "--format", "stream", "--enable-streaming",
-              "--playback-volume", "30","--enable-display", NULL);
+              "--playback-volume", "80","--enable-display", NULL);
         
         // 如果execl失败，输出错误并退出
         perror("Failed to start ai_client_socket");
@@ -375,7 +423,7 @@ static int is_ai_client_running() {
     }
 }
 
-// 检查GPIO是否已经初始化
+// 检查GPIO是否已经初始化,实际没用
 static int is_gpio_ready(int gpio_number) {
     char path[64];
     snprintf(path, sizeof(path), "%s/gpio%d/direction", GPIO_SYSFS_PATH, gpio_number);
@@ -455,24 +503,44 @@ static void* gpio_monitor_thread(void *arg) {
                                         if (start_ai_client() == 0) {
                                             snprintf(message, sizeof(message), "AI Client Started");
                                             // 播放提示音，使用完整路径和环境变量
+                                            send_to_display(message);
                                             system("LD_LIBRARY_PATH=/oem/usr/lib:/usr/lib:/lib /oem/usr/bin/rk_mpi_ao_test -i AItalk.wav --sound_card_name=hw:0,0 --device_ch=2 --device_rate=16000 --input_rate=22000 --input_ch=2");
                                         } else {
                                             snprintf(message, sizeof(message), "AI Client Start Failed");
+                                            send_to_display(message);
                                         }
                                     } else {
                                         // 没有WiFi连接，显示No wifi
-                                        snprintf(message, sizeof(message), "No wifi");
-                                        printf("WiFi未连接，无法启动AI客户端\n");
+                                        snprintf(message, sizeof(message), "Wifi WaiTing");
+                                        send_to_display(message);
                                     }
                                 }
-                                else if(MenuValue == 2){snprintf(message, sizeof(message), "Bright++");}
-                                else if(MenuValue == 5){
-                                    snprintf(message, sizeof(message), "Wait APP connect");
+                                else if(MenuValue == 2){snprintf(message, sizeof(message), "Bright++");send_to_display(message);}
+                                 else if(MenuValue == 3){
+                                     system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl=exposure=1300,analogue_gain=500");//设置增益
+                                     system("v4l2-ctl  -d  /dev/video7   --set-fmt-video=width=1920,height=1080,pixelformat=NV12   --stream-mmap=3      --stream-to=/tmp/1.raw --stream-count=1    --stream-skip=1");//拍照
+                                     //system("pgrep -x FFlaunch >/dev/null || FFlaunch &");
+                                     snprintf(message, sizeof(message), "Finish-Photo");
+                                     send_to_display(message);//发送信息
+                                     char ffmpeg_cmd[512];
+                                     snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd), "ffmpeg -y -f rawvideo -pixel_format nv12 -s 1920x1080 -i /tmp/1.raw -vf scale=512:288 -q:v 5 -frames:v 1 -f image2 /tmp/123.jpg");
+                                     int ffmpeg_result = system(ffmpeg_cmd);//压缩，保存临时文件，容易被覆盖
+                                    snprintf(ffmpeg_cmd, sizeof(ffmpeg_cmd), "mkdir -p /userdata/Rec && cp /tmp/123.jpg /userdata/Rec/P$(date +%%s).jpg");
+                                     system(ffmpeg_cmd);//保存
+                                     snprintf(message, sizeof(message), "FFmFinished");
+                                     send_to_display(message);
+                                 }
+                                else if(MenuValue == 4){
+                                    snprintf(message, sizeof(message), "VideoRecing");
                                     send_to_display(message);
-                                    system("/oem/usr/expect.sh");
-                                    system("FFlaunch");//图片压缩控制器
+                                    system("v4l2-ctl -d /dev/v4l-subdev2 --set-ctrl=exposure=1300,analogue_gain=500");//设置增益
+                                    char cmd[256];
+                                    snprintf(cmd, sizeof(cmd), "simple_vi_bind_venc -c 150 -o /userdata/Rec/out_$(date +%%s).h264");
+                                    system(cmd);
+                                    snprintf(message, sizeof(message), "Finish-Video");
+                                    send_to_display(message);
                                 }
-
+                                else if(MenuValue == 5){snprintf(message, sizeof(message), "TelePrompTerNextParagraph");send_to_display(message);}
                                 
                             } else if (gpios[i].prev_state == 0 && gpios[i].current_state == 1) {
                                 // LOW转HIGH
@@ -483,9 +551,9 @@ static void* gpio_monitor_thread(void *arg) {
                                 // HIGH转LOW
                                 MenuValue++;
                                 if(MenuValue == 1){
-                                    snprintf(message, sizeof(message), "Ai");
+                                    snprintf(message, sizeof(message), "AiTalk");
                                     // 如果AI客户端正在运行，停止它
-
+                                    send_to_display(message);
                                 }
                                 else if(MenuValue == 2){
                                     snprintf(message, sizeof(message), "Brightness");
@@ -493,17 +561,18 @@ static void* gpio_monitor_thread(void *arg) {
                                         stop_ai_client();
                                         //printf("AI Client Stopped");
                                     }
+                                    send_to_display(message);
                                 }
-                                else if(MenuValue == 3){snprintf(message, sizeof(message), "Sleep");}
-                                else if(MenuValue == 4){snprintf(message, sizeof(message), "Record");}
-                                else if(MenuValue == 5){snprintf(message, sizeof(message), "CamerA");}
+                                else if(MenuValue == 4){snprintf(message, sizeof(message), "Record");send_to_display(message);}
+                                else if(MenuValue == 3){snprintf(message, sizeof(message), "CamerA");send_to_display(message);}
+                                else if(MenuValue == 5){snprintf(message, sizeof(message), "TelePrompTer");send_to_display(message);}
                                 else{MenuValue = 0;}
                             } else if (gpios[i].prev_state == 0 && gpios[i].current_state == 1) {
                                 // LOW转HIGH
                                 //snprintf(message, sizeof(message), "IOBDN");
                             }
                         }
-                        send_to_display(message);
+                        //send_to_display(message);
                         
                         gpios[i].prev_state = gpios[i].current_state;
                     }
@@ -540,7 +609,7 @@ int main() {
     }
     
     // 发送初始消息测试
-    send_to_display("GPIO Monitor Started");
+    //send_to_display("GPIO Monitor Started");
     
     // 创建GPIO监控线程
     if (pthread_create(&gpio_thread, NULL, gpio_monitor_thread, gpios) != 0) {

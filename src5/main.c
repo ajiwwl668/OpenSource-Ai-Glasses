@@ -25,18 +25,35 @@
 #include <font.h>
 #include <sys/wait.h>
 #include "ui.h"
+#include "lvgl/lvgl.h"
+// #include "ui.h"       // 如果你用的是 SquareLine 的 ui_init()
 #define SPI_DEVICE_PATH "/dev/spidev0.0"
 #define SHM_NAME "/display_shm"       // 共享内存名称
 #define SEM_NAME "/display_sem"       // 信号量名称
 #define BUFFER_SIZE 128               // 消息缓冲区大小
+#define ACCUMULATED_TEXT_SIZE 1024    // 累积文本缓冲区大小
 // 在main.c的全局变量区域添加
 extern lv_obj_t *ui_Label2;  // 声明外部变量，指向"微笑"标签
 extern const lv_img_dsc_t camera;  // 声明camera图标
+extern lv_obj_t *ui_TextContainer; // 声明文本容器
+extern lv_obj_t *ui_Menu1; // 声明Menu1容器
+extern lv_obj_t *ui_VideoContainer; // 声明录像机容器
 // 声明录像机相关UI对象
 extern lv_obj_t *ui_VideoRecorderRect;  // 录像机矩形
 extern lv_obj_t *ui_VideoLine1;         // 录像机线条1
 extern lv_obj_t *ui_VideoLine2;         // 录像机线条2  
 extern lv_obj_t *ui_VideoLine3;         // 录像机线条3
+extern lv_obj_t *ui_VideoText;          // 录像文字标签
+extern lv_obj_t *ui_CameraText;         // 拍照文字标签
+extern lv_obj_t *ui_LineA;//电池的四个格子
+extern lv_obj_t *ui_LineB;//电池的四个格子
+extern lv_obj_t *ui_LineC;//电池的四个格子
+extern lv_obj_t *ui_LineD;//电池的四个格子
+extern lv_obj_t *ui_SlantedLine;//手机是否连接
+extern lv_obj_t *ui_VideoRecordingContainer;
+// 提词器相关UI对象
+extern lv_obj_t *ui_TeleprompTerContainer;
+extern lv_obj_t *ui_TeleprompTerTxT;
 volatile bool hide_smile_flag = false;  // 线程安全标志位
 static int image_saved = 0;
 int spi_file;
@@ -50,6 +67,15 @@ int running = 1;         // 程序运行标记
 sem_t *semaphore;        // 信号量指针
 char *shared_memory;     // 共享内存指针
 
+// 累积文本显示相关变量
+static char accumulated_text[ACCUMULATED_TEXT_SIZE] = {0};  // 累积文本缓冲区
+static size_t accumulated_text_len = 0;  // 当前累积文本长度
+static char last_displayed_message[BUFFER_SIZE] = {0};  // 上次显示的消息，用于检测新消息
+
+// 提词器相关变量
+static int teleprompter_read_position = 0;  // 当前读取位置（已读字符数）
+static char teleprompter_buffer[301] = {0};  // 存储读取的文本（100个汉字 + 1个结束符）
+
 // 省电功能相关变量
 volatile bool display_power_save_mode = false;  // 省电模式标志
 volatile time_t last_activity_time = 0;         // 最后活动时间
@@ -57,11 +83,11 @@ volatile time_t power_save_start_time = 0;      // 省电模式开始时间
 #define POWER_SAVE_TIMEOUT 30                   // 30秒后进入省电模式
 
 // 添加camera图像对象全局变量
-static lv_obj_t *camera_img_obj = NULL;  // camera图像对象指针
-static bool camera_visible = false;       // camera图标显示状态
+//static lv_obj_t *camera_img_obj = NULL;  // camera图像对象指针
 
-// 添加录像机对象全局变量
-static bool recorder_visible = false;     // 录像机图标显示状态
+bool Not_Add_To_TextContainer = false;//一个标志位 防止有一些命令文本被加入到显示 
+
+//Ai、Brightness、Bright++、CamerA、
 
 // 函数声明
 int spi_init();
@@ -132,10 +158,20 @@ int spi_init() {
 
     return 0;
 }
+// 放在 src5/main.c 顶部的函数声明区或 display_update_thread 之前
+static inline void wake_display_and_touch_activity(void) {
+    if (display_power_save_mode) {
+        send_cmd(SPI_DISPLAY_ENABLE);
+        send_cmd(SPI_SYNC);
+        usleep(1 * 1000);
+        display_power_save_mode = false;
+    }
+    last_activity_time = time(NULL);  // 统一更新最后活动时间
+}
 
 // 显示更新线程：监听共享内存变化
 void* display_update_thread(void* arg) {
-    char last_message[BUFFER_SIZE] = {0};
+    //char last_message[BUFFER_SIZE] = {0};
     uint8_t Brightness_display = 30;
     
     while (running) {
@@ -147,208 +183,306 @@ void* display_update_thread(void* arg) {
         }
         
         // 检查是否有新消息
-        if (strcmp(shared_memory, last_message) != 0) {
-            strncpy(last_message, shared_memory, BUFFER_SIZE - 1);
+        //if (strcmp(shared_memory, last_message) != 0) {
+            //strncpy(last_message, shared_memory, BUFFER_SIZE - 1);
             
             // 处理"init"指令
             if (strcmp(shared_memory, "GPIOA") == 0 && !display_inited) {
                 display_inited = 1;
                 printf("Display updated to: Inited\n");
             } 
-            // 处理"CamerA"指令 - 居中显示camera图标
-            else if (strcmp(shared_memory, "CamerA") == 0) {
-                // 如果有新内容显示，重新开启显示并更新活动时间
-                if (display_power_save_mode) {
-                    printf("🔄 检测到CamerA指令，重新开启显示\n");
-                    send_cmd(SPI_DISPLAY_ENABLE);
-                    send_cmd(SPI_SYNC);
-                    usleep(1 * 1000);
-                    display_power_save_mode = false;
-                }
-                
-                // 更新最后活动时间
-                last_activity_time = time(NULL);
-                
-                hide_smile_flag = true;  // 设置标志位，隐藏微笑标签
-                
-                // 检查camera图像对象是否已存在
-                if (camera_img_obj == NULL) {
-                                    // 首次创建camera图像对象
-                camera_img_obj = lv_img_create(lv_scr_act());
-                lv_img_set_src(camera_img_obj, &camera);
-                lv_obj_set_align(camera_img_obj, LV_ALIGN_CENTER);
-                lv_obj_set_y(camera_img_obj, -80);  // 向上移动80像素
-                    //printf("Display updated to: CamerA - 创建并显示camera图标\n");
-                } else {
-                    // 对象已存在，确保可见
-                    lv_obj_clear_flag(camera_img_obj, LV_OBJ_FLAG_HIDDEN);
-                    //printf("Display updated to: CamerA - 显示已存在的camera图标\n");
-                }
-                camera_visible = true;
-            }
-            // 处理"Record"指令 - 显示录像机图标
-            else if (strcmp(shared_memory, "Record") == 0) {
-                // 如果有新内容显示，重新开启显示并更新活动时间
-                if (display_power_save_mode) {
-                    printf("🔄 检测到Record指令，重新开启显示\n");
-                    send_cmd(SPI_DISPLAY_ENABLE);
-                    send_cmd(SPI_SYNC);
-                    usleep(1 * 1000);
-                    display_power_save_mode = false;
-                }
-                
-                // 更新最后活动时间
-                last_activity_time = time(NULL);
-                
-                hide_smile_flag = true;  // 设置标志位，隐藏微笑标签
-                
-                // 显示录像机图标（矩形和三条线）
-                if (ui_VideoRecorderRect != NULL) {
-                    lv_obj_clear_flag(ui_VideoRecorderRect, LV_OBJ_FLAG_HIDDEN);
-                }
-                if (ui_VideoLine1 != NULL) {
-                    lv_obj_clear_flag(ui_VideoLine1, LV_OBJ_FLAG_HIDDEN);
-                }
-                if (ui_VideoLine2 != NULL) {
-                    lv_obj_clear_flag(ui_VideoLine2, LV_OBJ_FLAG_HIDDEN);
-                }
-                if (ui_VideoLine3 != NULL) {
-                    lv_obj_clear_flag(ui_VideoLine3, LV_OBJ_FLAG_HIDDEN);
-                }
-                recorder_visible = true;
-                
-                printf("Display updated to: Record - 显示录像机图标\n");
-            }
-            // 处理其他显示内容
-            else if (strcmp(shared_memory, "init") != 0) {
-                // 如果有新内容显示，重新开启显示并更新活动时间
-                if (display_power_save_mode) {
-                    printf("🔄 检测到新内容，重新开启显示\n");
-                    send_cmd(SPI_DISPLAY_ENABLE);
-                    send_cmd(SPI_SYNC);
-                    usleep(1 * 1000);
-                    display_power_save_mode = false;
-                }
-                
-                // 更新最后活动时间
-                last_activity_time = time(NULL);
-                
-                hide_smile_flag = true;  // 设置标志位，不直接操作UI
-                printf("Display updated to: %s\n", shared_memory);
-                
-                // 检测是否包含"Ai"字符串，控制对话气泡显示
-                if (strstr(shared_memory, "Ai") != NULL) {
-                    // 显示对话气泡
-                    if (ui_SpeechBubble != NULL) {
-                        lv_obj_clear_flag(ui_SpeechBubble, LV_OBJ_FLAG_HIDDEN);
-                        //printf("�� 检测到Ai，显示对话气泡\n");
-                    }
-                    if (ui_SpeechTail1 != NULL) {
-                        lv_obj_clear_flag(ui_SpeechTail1, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_SpeechTail2 != NULL) {
-                        lv_obj_clear_flag(ui_SpeechTail2, LV_OBJ_FLAG_HIDDEN);
-                    }
-                } else {
-                    // 隐藏对话气泡
-                    if (ui_SpeechBubble != NULL) {
-                        lv_obj_add_flag(ui_SpeechBubble, LV_OBJ_FLAG_HIDDEN);
-                        //printf("🎯 未检测到Ai，隐藏对话气泡\n");
-                    }
-                    if (ui_SpeechTail1 != NULL) {
-                        lv_obj_add_flag(ui_SpeechTail1, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_SpeechTail2 != NULL) {
-                        lv_obj_add_flag(ui_SpeechTail2, LV_OBJ_FLAG_HIDDEN);
-                    }
-                }
-                
-                // 检测是否为"Brightness"指令，控制亮度调节元素显示
-                if (strcmp(shared_memory, "Brightness") == 0) {
-                    strncpy(last_message, "亮度设置", 12);
-                    strncpy(shared_memory, "亮度设置", 12);
-                    
-                    // 显示亮度调节相关的5个元素（圆形和4条线）
-                    if (ui_Circle != NULL) {
-                        lv_obj_clear_flag(ui_Circle, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_UpperLine != NULL) {
-                        lv_obj_clear_flag(ui_UpperLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_LowerLine != NULL) {
-                        lv_obj_clear_flag(ui_LowerLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_LeftLine != NULL) {
-                        lv_obj_clear_flag(ui_LeftLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_RightLine != NULL) {
-                        lv_obj_clear_flag(ui_RightLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                } else {
-                    // 隐藏亮度调节相关的5个元素（圆形和4条线）
-                    if (ui_Circle != NULL) {
-                        lv_obj_add_flag(ui_Circle, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_UpperLine != NULL) {
-                        lv_obj_add_flag(ui_UpperLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_LowerLine != NULL) {
-                        lv_obj_add_flag(ui_LowerLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_LeftLine != NULL) {
-                        lv_obj_add_flag(ui_LeftLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_RightLine != NULL) {
-                        lv_obj_add_flag(ui_RightLine, LV_OBJ_FLAG_HIDDEN);
-                    }
-                }
-                
-                // 隐藏camera图标（如果存在且可见）
-                if (camera_img_obj != NULL && camera_visible) {
-                    lv_obj_add_flag(camera_img_obj, LV_OBJ_FLAG_HIDDEN);
-                    camera_visible = false;
-                }
-                
-                // 隐藏录像机图标（如果存在且可见）
-                if (recorder_visible) {
-                    if (ui_VideoRecorderRect != NULL) {
-                        lv_obj_add_flag(ui_VideoRecorderRect, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_VideoLine1 != NULL) {
-                        lv_obj_add_flag(ui_VideoLine1, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_VideoLine2 != NULL) {
-                        lv_obj_add_flag(ui_VideoLine2, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    if (ui_VideoLine3 != NULL) {
-                        lv_obj_add_flag(ui_VideoLine3, LV_OBJ_FLAG_HIDDEN);
-                    }
-                    recorder_visible = false;
-                }
-            }
-            // 在display_update_thread函数中修改处理逻辑
-            if (strcmp(shared_memory, "Bright++") == 0) {
+            else if (strcmp(shared_memory, "Bright++") == 0) {
                 // 亮度调节也视为活动，重新开启显示
-                if (display_power_save_mode) {
-                    //printf("🔄 亮度调节，重新开启显示\n");
-                    send_cmd(SPI_DISPLAY_ENABLE);
-                    send_cmd(SPI_SYNC);
-                    usleep(1 * 1000);
-                    display_power_save_mode = false;
-                }
-                
-                // 更新最后活动时间
-                last_activity_time = time(NULL);
-                
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
                 Brightness_display = Brightness_display+10;
                 if(Brightness_display > 63){Brightness_display = 0;}
                 wr_cur_reg(Brightness_display);                          //设置电流寄存器
                 send_cmd(SPI_SYNC);                     //同步设置
                 hide_smile_flag = true;  // 设置标志位，不直接操作UI
-                strncpy(last_message, "clean", 12);
-                strncpy(shared_memory, "亮度修改", 12);
+                //strncpy(last_message, "clean", 12);//这里可以控制是否能重复修改亮度
+                //strncpy(shared_memory, "亮度修改", 12);
+                printf("Brigt++\n");
             }
-        }
+            // 处理"CamerA"指令 - 居中显示camera图标
+            else if (strcmp(shared_memory, "CamerA") == 0) {
+                // 如果有新内容显示，重新开启显示并更新活动时间
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;  // 设置标志位，隐藏微笑标签
+                lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);//隐藏菜单页
+                // 隐藏文本容器
+                if (ui_TextContainer) lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                // 显示录像机容器（包含所有录像机图标）
+                if (ui_VideoContainer != NULL) {
+                    lv_obj_clear_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 设置ui_VideoText透明度为20%
+                if (ui_VideoText != NULL) {
+                    lv_obj_set_style_text_opa(ui_VideoText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                // 恢复ui_CameraText正常透明度
+                if (ui_CameraText != NULL) {
+                    lv_obj_set_style_text_opa(ui_CameraText, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_TeleprompterText != NULL) {
+                    lv_obj_set_style_text_opa(ui_TeleprompterText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+            }
+            // 处理"Record"指令 - 显示录像机图标
+            else if (strcmp(shared_memory, "Record") == 0) {
+                // 如果有新内容显示，重新开启显示并更新活动时间
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;  //
+                lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);//隐藏菜单页
+                // 隐藏文本容器
+                if (ui_TextContainer) lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                // 显示录像机容器（包含所有录像机图标）
+                if (ui_VideoContainer != NULL) {
+                    lv_obj_clear_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 恢复ui_VideoText正常透明度
+                if (ui_VideoText != NULL) {
+                    lv_obj_set_style_text_opa(ui_VideoText, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                // 设置ui_CameraText透明度为20%
+                if (ui_CameraText != NULL) {
+                    lv_obj_set_style_text_opa(ui_CameraText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                // 设置ui_TeleprompterText透明度为20%
+                if (ui_TeleprompterText != NULL) {
+                    lv_obj_set_style_text_opa(ui_TeleprompterText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+            }
+            // 检测是否包含"Ai"字符串，控制对话气泡显示
+            else if (strcmp(shared_memory, "AiTalk") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                hide_smile_flag = true;
+                
+                // 显示AiTalk指示线
+                if (ui_AiTalkLine) lv_obj_clear_flag(ui_AiTalkLine, LV_OBJ_FLAG_HIDDEN);
+                // 隐藏亮度指示线
+                if (ui_BrightnessLine) lv_obj_add_flag(ui_BrightnessLine, LV_OBJ_FLAG_HIDDEN);
+                // 隐藏录像机容器
+                if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                //显示状态信息和亮度
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+            }
+            else if (strcmp(shared_memory, "BLE DissCon") == 0){
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                // BLE断开时显示斜线（表示断开状态）
+                if (ui_SlantedLine) lv_obj_clear_flag(ui_SlantedLine, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                hide_smile_flag = true;
+                system("hciconfig hci0 leadv");//蓝牙重启逻辑先放在这里了
+                system("btgatt-server &");
+            }
+            else if (strcmp(shared_memory, "Phone ConnecTed") == 0){
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                // 手机连接时隐藏斜线（表示连接状态）
+                if (ui_SlantedLine) lv_obj_add_flag(ui_SlantedLine, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                hide_smile_flag = true;
+            }
+            else if (strcmp(shared_memory, "Brightness") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                if (ui_Menu1) lv_obj_clear_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                hide_smile_flag = true;
+                
+                // 显示亮度指示线
+                if (ui_BrightnessLine) lv_obj_clear_flag(ui_BrightnessLine, LV_OBJ_FLAG_HIDDEN);
+                // 隐藏AiTalk指示线
+                if (ui_AiTalkLine) lv_obj_add_flag(ui_AiTalkLine, LV_OBJ_FLAG_HIDDEN);
+                // 隐藏录像机容器
+                if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+            }
+            else if (strcmp(shared_memory, "BLE:AlbumSync") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                system("ai_media_service &");
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+            }
+            else if (strcmp(shared_memory, "Finish-Photo") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                //if (ui_CameraText) {
+                    lv_label_set_text(ui_CameraText, "保存");
+                //}
+            }    
+            else if (strcmp(shared_memory, "TelePrompTer") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;  // 设置标志位，隐藏微笑标签
+                lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);//隐藏菜单页
+                // 恢复ui_VideoText正常透明度
+                if (ui_TeleprompterText != NULL) {
+                    lv_obj_set_style_text_opa(ui_TeleprompterText, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_VideoText != NULL) {//设置录像机透明度
+                    lv_obj_set_style_text_opa(ui_VideoText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                // 设置ui_CameraText透明度为20%
+                if (ui_CameraText != NULL) {
+                    lv_obj_set_style_text_opa(ui_CameraText, LV_OPA_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+            }
+            else if (strcmp(shared_memory, "TelePrompTerNextParagraph") == 0) {
+                // 读取提词器文本文件
+                wake_display_and_touch_activity();
+                
+                // 先清空控件之前的文本
+                if (ui_TeleprompTerTxT != NULL) {
+                    lv_label_set_text(ui_TeleprompTerTxT, "");
+                }
+                
+                FILE *file = fopen("/usr/bin/TeleprompTer.txt", "r");
+                if (file != NULL) {
+                    // 跳过已读的字符
+                    Not_Add_To_TextContainer = false;
+                    hide_smile_flag = true;
+                    fseek(file, teleprompter_read_position, SEEK_SET);
+                    if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                    
+                    // 读取100个汉字（300个字节，因为UTF-8编码下1个汉字占3个字节）
+                    size_t bytes_read = fread(teleprompter_buffer, 1, 300, file);
+                    teleprompter_buffer[bytes_read] = '\0';  // 确保字符串结束
+                    
+                    // 检查是否到达文件末尾
+                    if (bytes_read < 300) {
+                        // 文件读取完毕，重置读取位置到开头
+                        teleprompter_read_position = 0;
+                    } else {
+                        // 更新读取位置
+                        teleprompter_read_position += bytes_read;
+                    }
+                    
+                    fclose(file);
+                    
+                    // 显示读取的文本
+                    if (ui_TeleprompTerTxT != NULL) {
+                        lv_label_set_text(ui_TeleprompTerTxT, teleprompter_buffer);
+                    }
+                    
+                    // 显示提词器容器
+                    if (ui_TeleprompTerContainer != NULL) {
+                        lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
+                    }
+                } else {
+                    // 文件打开失败，显示错误信息
+                    //printf("No\n");
+                    if (ui_TeleprompTerTxT != NULL) {
+                        lv_label_set_text(ui_TeleprompTerTxT, "无法打开提词器文件");
+                    }
+                    if (ui_TeleprompTerContainer != NULL) {
+                        lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
+                    }
+                }
+            }
+            else if (strcmp(shared_memory, "FFmFinished") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                //if (ui_CameraText) {
+                    lv_label_set_text(ui_CameraText, "拍照");
+                //}
+            }  
+            else if (strcmp(shared_memory, "VideoRecing") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                lv_obj_clear_flag(ui_VideoRecordingContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+            }
+            else if (strcmp(shared_memory, "Finish-Video") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                lv_obj_add_flag(ui_VideoRecordingContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_VideoContainer) lv_obj_clear_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+            }
+            // 处理其他显示内容
+            else if (strcmp(shared_memory, "init") != 0) {
+                // 如果有新内容显示，重新开启显示并更新活动时间
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = true;
+                hide_smile_flag = true;  // 设置标志位，不直接操作UI
+                printf("Display updated to: %s\n", shared_memory);
+
+
+                // 指令到中文提示的映射
+                if (strcmp(shared_memory, "FinisheD") == 0) {
+                    Not_Add_To_TextContainer = false;
+                    lv_label_set_text(ui_StatusLabel, "触摸镜腿 开始对话");
+                    // 不再放进 last_message、shared_memory，也不显示到 ui_Label2
+                    continue;
+                } else if (strcmp(shared_memory, "RecordinG") == 0) {
+                    Not_Add_To_TextContainer = false;
+                    lv_label_set_text(ui_StatusLabel, "录音中 松手发送");
+                    continue;
+                } else if (strcmp(shared_memory, "UploaD") == 0) {
+                    Not_Add_To_TextContainer = false;
+                    lv_label_set_text(ui_StatusLabel, "上传中");
+                    continue;
+                }
+                else if (strcmp(shared_memory, "ProceSSing") == 0) {
+                    Not_Add_To_TextContainer = false;
+                    lv_label_set_text(ui_StatusLabel, "处理中");
+                    continue;
+                }
+                // 隐藏对话气泡
+                /*if (ui_SpeechBubble != NULL) {
+                    lv_obj_add_flag(ui_SpeechBubble, LV_OBJ_FLAG_HIDDEN);
+                    //printf("🎯 未检测到Ai，隐藏对话气泡\n");
+                }
+                if (ui_SpeechTail1 != NULL) {
+                    lv_obj_add_flag(ui_SpeechTail1, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_SpeechTail2 != NULL) {
+                    lv_obj_add_flag(ui_SpeechTail2, LV_OBJ_FLAG_HIDDEN);
+                }
+                */
+
+                
+                // 检测是否为"Brightness"指令，控制亮度调节元素显示，同时隐藏文本容器
+
+
+
+                
+                // 显示普通文本内容时，确保文本容器可见并隐藏其它图标
+                if (ui_TextContainer) lv_obj_clear_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                
+                // 隐藏录像机容器（包含所有录像机组件）
+                if (ui_VideoContainer != NULL) {
+                    lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                }
+
+                // 隐藏这些元素
+                if (ui_Menu1) lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
+                // 取消隐藏 ui_Label2
+                if (ui_Label2)           lv_obj_clear_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_scroll_to_y(ui_TextContainer, LV_COORD_MAX, LV_ANIM_OFF);//滚动到底
+            }
+            // 在display_update_thread函数中修改处理逻辑
+            
+            
+        //}
     }
     
     return NULL;
@@ -636,7 +770,7 @@ int main() {
     
 
     lv_scr_load(ui_Screen1);
-
+    //show_symbol_left();
     // 初始化时间检测
     last_activity_time = time(NULL);
 
@@ -646,7 +780,56 @@ int main() {
 
         if (hide_smile_flag) {
             if (ui_Label2 != NULL) {
-                lv_label_set_text(ui_Label2, shared_memory);
+                // 检查是否有新消息需要累加
+                if (strcmp(shared_memory, last_displayed_message) != 0) {
+                    // 排除不应进入累加文本的关键词
+                    if (Not_Add_To_TextContainer) {
+                        Not_Add_To_TextContainer = false;
+                        // 更新上次显示的消息
+                        strncpy(last_displayed_message, shared_memory, BUFFER_SIZE - 1);
+                        last_displayed_message[BUFFER_SIZE - 1] = '\0';
+
+                        // 计算新消息长度
+                        size_t new_msg_len = strnlen(shared_memory, BUFFER_SIZE - 1);
+
+                        // 检查是否有足够空间添加新消息
+                        if (accumulated_text_len + new_msg_len + 2 < ACCUMULATED_TEXT_SIZE) {  // +2 for "\n" and null terminator
+                            // 如果不是第一条消息，添加换行符
+                            if (accumulated_text_len > 0) {
+                                accumulated_text[accumulated_text_len++] = '\n';
+                            }
+
+                            // 添加新消息到累积文本
+                            strncpy(accumulated_text + accumulated_text_len, shared_memory, new_msg_len);
+                            accumulated_text_len += new_msg_len;
+                            accumulated_text[accumulated_text_len] = '\0';  // 确保字符串结束
+                        } else {
+                            // 缓冲区满，清空并重新开始
+                            accumulated_text_len = 0;
+                            strncpy(accumulated_text, shared_memory, new_msg_len);
+                            accumulated_text_len = new_msg_len;
+                            accumulated_text[accumulated_text_len] = '\0';
+                        }
+
+                        lv_label_set_text(ui_Label2, accumulated_text);
+                        lv_obj_clear_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                    } else {
+                        // 对于排除的关键词，仍需更新 last_displayed_message 以避免重复处理
+                        strncpy(last_displayed_message, shared_memory, BUFFER_SIZE - 1);
+                        last_displayed_message[BUFFER_SIZE - 1] = '\0';
+                    }
+                }
+                
+                // 显示累积的文本
+                printf("accumulated_text = %s\n", accumulated_text);
+                
+
+                // 容器显隐改由 display_update_thread 决定，这里仅在可见时自动滚动
+                
+                if (ui_TextContainer && !lv_obj_has_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN)) {
+                    lv_obj_scroll_to_y(ui_TextContainer, LV_COORD_MAX, LV_ANIM_OFF);
+                }
+
                 lv_obj_invalidate(lv_scr_act());  // 关键修改： invalidate整个屏幕
                 lv_refr_now(lv_disp_get_default()); // 强制刷新
             }
@@ -855,7 +1038,7 @@ uint8_t* load_image(const char* filename, uint16_t* width, uint16_t* height) {
 }
 
 /**
- * 加载并显示图片文件
+ * 加载并显示圖片文件
  * @param filename 图片文件路径（默认：/test/test.bmp）
  */
 int load_and_display_image(const char* filename) {
@@ -1360,7 +1543,6 @@ int display_bmp_zoom_animation(const char* filename, struct zoom_animation_t* an
     free(orig_rgb);
     
     printf("🎬 缩放动画完成！\n\n");
-    return 0;
 }
 
 /**
@@ -2054,7 +2236,6 @@ int play_image_sequence(char** filenames, int count, struct sequence_animation_t
     }
     
     printf("✅ 序列播放完成！\n\n");
-    return 0;
 }
 
 /**
@@ -2099,4 +2280,12 @@ void demo_image_sequence(const char* directory) {
     
     printf("🎉 序列图播放演示完成！\n\n");
 }
+
+void show_symbol_left(void) {
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, LV_SYMBOL_LEFT);   // 显示 ← 符号
+    lv_obj_center(label);
+}
+
+
 

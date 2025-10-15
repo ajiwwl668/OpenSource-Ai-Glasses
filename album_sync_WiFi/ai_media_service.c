@@ -14,6 +14,10 @@
 #include <fcntl.h>
 #include <semaphore.h>
 #include <dirent.h> // 新增：用于文件夹扫描
+#include <ifaddrs.h>      // 用于 getifaddrs()
+#include <netinet/in.h>   // 用于 sockaddr_in 结构体
+#include <arpa/inet.h>    // 用于 inet_ntop()
+#include <net/if.h>       // 用于 IFF_UP 和 IFF_RUNNING 标志
 
 // 消息类型定义
 #define MSG_CONFIG       0x01
@@ -28,6 +32,8 @@
 #define MSG_SAVE_TO_ALBUM 0x24  // 客户端请求相册同步（新增）
 #define MSG_ALBUM_SYNC_START 0x25  // 相册同步开始
 #define MSG_ALBUM_SYNC_END   0x26  // 相册同步结束
+// 新增：清空相册目录
+#define MSG_ALBUM_CLEAR      0x27  // 清空 /userdata/Rec 下所有文件
 // 新增系统更新相关消息类型
 #define MSG_UPDATE_START 0x30  // 系统更新开始
 #define MSG_UPDATE_DATA  0x31  // 系统更新数据
@@ -68,6 +74,7 @@ static int handle_system_update(int client_fd, const char *update_filename, size
 static int scan_album_folder(const char *folder_path, char ***file_list, int *file_count);  // 新增
 static int send_album_sync(int client_fd, const char *folder_path);  // 新增
 static int send_single_file_streaming(int client_fd, const char *file_path);  // 新增声明
+static int clear_folder_files(const char *folder_path);  // 新增声明：清空目录文件
 
 // 重新加载图片数据
 static int reload_image_data(const char *image_path, void **image_data, size_t *image_size) {
@@ -519,6 +526,46 @@ static int send_album_sync(int client_fd, const char *folder_path) {
     return 0;
 }
 
+// 新增：清空目录下所有普通文件
+static int clear_folder_files(const char *folder_path) {
+    DIR *dir;
+    struct dirent *entry;
+    int removed = 0;
+
+    if (!folder_path) {
+        fprintf(stderr, "错误: 目录路径为NULL\n");
+        return -1;
+    }
+
+    dir = opendir(folder_path);
+    if (!dir) {
+        fprintf(stderr, "错误: 无法打开目录 '%s' (%s)\n", folder_path, strerror(errno));
+        return -1;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // 仅删除普通文件，避免误删子目录
+        if (entry->d_type == DT_REG) {
+            char fullpath[1024];
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", folder_path, entry->d_name);
+            if (unlink(fullpath) == 0) {
+                removed++;
+                printf("🗑️  [ALBUM] 已删除: %s\n", fullpath);
+            } else {
+                printf("❌ [ALBUM] 删除失败: %s (%s)\n", fullpath, strerror(errno));
+            }
+        }
+    }
+
+    closedir(dir);
+    printf("✅ [ALBUM] 清理完成，删除 %d 个文件（目录: %s）\n", removed, folder_path);
+    return 0;
+}
+
 // 优化：流式发送单个文件（不占用大量内存）
 static int send_single_file_streaming(int client_fd, const char *file_path) {
     FILE *fp;
@@ -669,6 +716,20 @@ static int communicate_with_phone(int client_fd, const char *image_path) {
                         printf("✅ [COMM] 相册同步完成，继续监听客户端消息...\n");
                     } else {
                         printf("❌ [COMM] 相册同步失败\n");
+                    }
+                    break;
+                
+                case MSG_ALBUM_CLEAR:
+                    // 客户端请求清空相册目录
+                    printf("🗑️  [CLIENT] 客户端请求清空相册目录 /userdata/Rec\n");
+                    if (clear_folder_files("/userdata/Rec") == 0) {
+                        const char *ok = "album_clear:ok";
+                        socket_send_message(client_fd, MSG_IMAGE_ACK, ok, strlen(ok));
+                        printf("✅ [COMM] 相册目录已清空\n");
+                    } else {
+                        const char *fail = "album_clear:fail";
+                        socket_send_message(client_fd, MSG_IMAGE_ACK, fail, strlen(fail));
+                        printf("❌ [COMM] 相册目录清空失败\n");
                     }
                     break;
                     
@@ -976,6 +1037,48 @@ static void send_to_display(const char *message) {
         printf("✅ [IPC] 消息已发送到display: %s\n", message);
     }
 }
+// 获取本机IP地址函数
+static char* get_local_ip_address() {
+    static char ip_str[INET_ADDRSTRLEN] = "0.0.0.0";
+    struct ifaddrs *ifaddr, *ifa;
+    int found = 0;
+    
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return ip_str;
+    }
+    
+    // 优先查找wlan0（无线网络）
+    for (ifa = ifaddr; ifa != NULL && !found; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) continue;
+        
+        // 检查IPv4地址
+        if (ifa->ifa_addr->sa_family == AF_INET) {
+            // 优先选择wlan0
+            if (strcmp(ifa->ifa_name, "wlan0") == 0) {
+                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                inet_ntop(AF_INET, &(sa->sin_addr), ip_str, INET_ADDRSTRLEN);
+                
+                // 检查网卡是否处于UP状态且正在运行
+                if ((ifa->ifa_flags & IFF_UP) && (ifa->ifa_flags & IFF_RUNNING)) {
+                    printf("📡 [IP] Found wlan0 IP: %s (UP and RUNNING)\n", ip_str);
+                    found = 1;
+                    break;
+                } else {
+                    printf("⚠️  [IP] wlan0 found but not active: %s (flags: 0x%x)\n", 
+                           ip_str, ifa->ifa_flags);
+                }
+            }
+        }
+    }
+    
+    if (!found) {
+        printf("❌ [IP] No active network interface found\n");
+        strcpy(ip_str, "No Network");
+    }
+    
+    return ip_str;
+}
 
 int main(int argc, char *argv[]) {
     const char *image_path = "/tmp/123.jpg";  // 默认图像路径
@@ -1011,7 +1114,7 @@ int main(int argc, char *argv[]) {
     }
 
     // 发送初始消息到display
-    send_to_display("Image Server Started");
+    send_to_display(get_local_ip_address());
 
     // 启动服务器，持续等待手机连接
     start_device_server(image_path);

@@ -123,11 +123,32 @@ A：如果你有近视或散光，请先发近视信息来定制镜片。
 
 
 ##编程相关
+
+3D_print_model不用管 这是眼镜的三维模型 
+
+
+Applications是打包好的应用
+
+
+script是一些开机启动脚本
+
+
+album_sync_WiFi是用来上传应用和下载照片、视频、录音的
+
+
 bluez-5.66下tools文件夹里btgatt-server是主程序，btgatt-server.c是业务代码，负责控制BT-gatt与手机通信，手机发送信息该程序会通过共享内存转发到src5的display显示出来。
+
+
+expect是控制蓝牙音乐连接的
+
+
+ffmpeg-rockchip是压缩图片&串流支持
 
 
 src5的build里面display是主程序，主目录下main是业务代码，负责创建共享内存和显示。
 
+
 rokit可以通过socket和服务器通信、进行大模型语音对话
 
-main文件夹下有TouchPadManager负责响应触控操作和启动上面各个APP，FFmlauncher是拍照和压缩图片
+
+main里面有两个文件夹，FFlaunch是控制ffmpeg-rockchip的，拍照流程可以参考；TouchPadManager相当于一个中央控制器控制着各个程序的启动和停止的同时 还接收触摸板的操控 
