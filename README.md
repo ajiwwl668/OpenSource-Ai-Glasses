@@ -1,6 +1,6 @@
 这是一个Linux-based智能眼镜的开源工程，还处于早期阶段，文档完善度5%
 
-联系作者1198566758@qq.com
+联系作者iam5tilllearning@foxmail.com
 
 ##基础信息介绍
 
@@ -154,3 +154,6 @@ rokit可以通过socket和服务器通信、进行大模型语音对话
 
 
 main里面有两个文件夹，FFlaunch是控制ffmpeg-rockchip的，拍照流程可以参考；TouchPadManager相当于一个中央控制器控制着各个程序的启动和停止的同时 还接收触摸板的操控 
+
+
+目前的通信协议非常简单，比如导航功能，手机端（flutter）通过BLE发送 MeteR333 然后btgatt-server.c会接收到信息转发给src5的main.c的display_update_thread线程，display_update_thread匹配到这行文字就会显示出来。

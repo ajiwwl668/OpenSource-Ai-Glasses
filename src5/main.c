@@ -38,6 +38,7 @@ extern const lv_img_dsc_t camera;  // 声明camera图标
 extern lv_obj_t *ui_TextContainer; // 声明文本容器
 extern lv_obj_t *ui_Menu1; // 声明Menu1容器
 extern lv_obj_t *ui_VideoContainer; // 声明录像机容器
+extern lv_obj_t *ui_Menu3; // 声明Menu3容器
 // 声明录像机相关UI对象
 extern lv_obj_t *ui_VideoRecorderRect;  // 录像机矩形
 extern lv_obj_t *ui_VideoLine1;         // 录像机线条1
@@ -298,6 +299,16 @@ void* display_update_thread(void* arg) {
                 lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
                 hide_smile_flag = true;
             }
+            else if (strcmp(shared_memory, "RecorDeR") == 0){//录音
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu3) lv_obj_clear_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                hide_smile_flag = true;
+            }
+            //还要新增图片显示、议程、大小字个性化设置
+            
             else if (strcmp(shared_memory, "Brightness") == 0) {
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
@@ -417,6 +428,14 @@ void* display_update_thread(void* arg) {
                 lv_obj_add_flag(ui_VideoRecordingContainer, LV_OBJ_FLAG_HIDDEN);
                 if (ui_VideoContainer) lv_obj_clear_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
             }
+            else if (strncmp(shared_memory, "MeTeR", 5) == 0) {//导航用于指示剩余路程
+            }
+            else if (strcmp(shared_memory, "TurnLefT") == 0) {//显示左转图标
+            }
+            else if (strcmp(shared_memory, "TurnRighT") == 0) {//显示右转图标
+            }
+            else if (strcmp(shared_memory, "GoStraighT") == 0) {//显示直行图标
+            }
             // 处理其他显示内容
             else if (strcmp(shared_memory, "init") != 0) {
                 // 如果有新内容显示，重新开启显示并更新活动时间
@@ -472,7 +491,8 @@ void* display_update_thread(void* arg) {
                 if (ui_VideoContainer != NULL) {
                     lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
                 }
-
+                //隐藏Menu3容器
+                if (ui_Menu3) lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
                 // 隐藏这些元素
                 if (ui_Menu1) lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN);
                 // 取消隐藏 ui_Label2

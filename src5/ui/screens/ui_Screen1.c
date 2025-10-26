@@ -38,6 +38,9 @@ lv_obj_t *ui_TeleprompterT = NULL;
 lv_obj_t *ui_TeleprompTerContainer = NULL;
 lv_obj_t *ui_TeleprompTerTxT = NULL;
 
+// 对外暴露的Menu3容器
+lv_obj_t *ui_Menu3 = NULL;
+
 
 void ui_Screen1_screen_init(void)
 {
@@ -436,17 +439,99 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_align(ui_VideoText, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     //lv_obj_add_flag(ui_VideoText, LV_OBJ_FLAG_HIDDEN);  // 默认隐藏
 
-    // 创建录音文字标签
-    ui_RecordText = lv_label_create(ui_VideoContainer);
+    // 创建Menu3容器
+    ui_Menu3 = lv_obj_create(ui_Screen1);
+    lv_obj_set_size(ui_Menu3, 640, 480);  // 全屏大小
+    lv_obj_set_pos(ui_Menu3, 0, 0);
+    lv_obj_set_style_bg_color(ui_Menu3, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Menu3, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(ui_Menu3, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_Menu3, LV_OBJ_FLAG_SCROLLABLE);
+    
+    // 移除边框
+    lv_obj_set_style_border_width(ui_Menu3, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_outline_width(ui_Menu3, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(ui_Menu3, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 设置Menu3默认隐藏
+    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+
+    // 创建录音文字标签（改为Menu3的子对象）
+    ui_RecordText = lv_label_create(ui_Menu3);
     lv_obj_set_width(ui_RecordText, LV_SIZE_CONTENT);
     lv_obj_set_height(ui_RecordText, LV_SIZE_CONTENT);
     lv_obj_set_align(ui_RecordText, LV_ALIGN_TOP_LEFT);
-    lv_obj_set_pos(ui_RecordText, 508, 239);  // 位置：508, 239
+    lv_obj_set_pos(ui_RecordText, 60-10, 239);  // 左上角放在(68,242)
     lv_label_set_text(ui_RecordText, "录音");
     lv_obj_set_style_text_font(ui_RecordText, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_RecordText, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_RecordText, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_add_flag(ui_RecordText, LV_OBJ_FLAG_HIDDEN);  // 默认隐藏
+
+    // 创建5个圆角矩形（录音UI线条）
+    // RecordUILine1: y=58, x=160, 长度26
+    lv_obj_t *ui_RecordUILine1 = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_RecordUILine1, 4);
+    lv_obj_set_height(ui_RecordUILine1, 26);
+    lv_obj_set_align(ui_RecordUILine1, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_x(ui_RecordUILine1, 58);
+    lv_obj_set_y(ui_RecordUILine1, 160-13);
+    lv_obj_set_style_radius(ui_RecordUILine1, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_RecordUILine1, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_RecordUILine1, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_RecordUILine1, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_RecordUILine1, LV_OBJ_FLAG_SCROLLABLE);
+
+    // RecordUILine2: y=78, x=160, 长度60
+    lv_obj_t *ui_RecordUILine2 = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_RecordUILine2, 4);
+    lv_obj_set_height(ui_RecordUILine2, 60);
+    lv_obj_set_align(ui_RecordUILine2, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_x(ui_RecordUILine2, 78);
+    lv_obj_set_y(ui_RecordUILine2, 160-30);
+    lv_obj_set_style_radius(ui_RecordUILine2, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_RecordUILine2, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_RecordUILine2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_RecordUILine2, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_RecordUILine2, LV_OBJ_FLAG_SCROLLABLE);
+
+    // RecordUILine3: y=98, x=160, 长度30
+    lv_obj_t *ui_RecordUILine3 = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_RecordUILine3, 4);
+    lv_obj_set_height(ui_RecordUILine3, 30);
+    lv_obj_set_align(ui_RecordUILine3, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_x(ui_RecordUILine3, 98);
+    lv_obj_set_y(ui_RecordUILine3, 160-15);
+    lv_obj_set_style_radius(ui_RecordUILine3, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_RecordUILine3, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_RecordUILine3, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_RecordUILine3, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_RecordUILine3, LV_OBJ_FLAG_SCROLLABLE);
+
+    // RecordUILine4: y=118, x=160, 长度94
+    lv_obj_t *ui_RecordUILine4 = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_RecordUILine4, 4);
+    lv_obj_set_height(ui_RecordUILine4, 94);
+    lv_obj_set_align(ui_RecordUILine4, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_x(ui_RecordUILine4, 118);
+    lv_obj_set_y(ui_RecordUILine4, 160-47);
+    lv_obj_set_style_radius(ui_RecordUILine4, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_RecordUILine4, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_RecordUILine4, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_RecordUILine4, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_RecordUILine4, LV_OBJ_FLAG_SCROLLABLE);
+
+    // RecordUILine5: y=138, x=160, 长度54
+    lv_obj_t *ui_RecordUILine5 = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_RecordUILine5, 4);
+    lv_obj_set_height(ui_RecordUILine5, 54);
+    lv_obj_set_align(ui_RecordUILine5, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_x(ui_RecordUILine5, 138);
+    lv_obj_set_y(ui_RecordUILine5, 160-27);
+    lv_obj_set_style_radius(ui_RecordUILine5, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_RecordUILine5, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_RecordUILine5, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_RecordUILine5, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_RecordUILine5, LV_OBJ_FLAG_SCROLLABLE);
 
     // 创建提词器文字标签
     ui_TeleprompterText = lv_label_create(ui_VideoContainer);
@@ -605,7 +690,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align( ui_Chinese_Bright, LV_ALIGN_TOP_LEFT);
     lv_label_set_text(ui_Chinese_Bright,"亮度");
     lv_obj_set_pos(ui_Chinese_Bright, 508, 239);  // 左上角放在(68,242)
-    lv_obj_set_style_text_font(ui_Chinese_Bright, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_Chinese_Bright, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_Chinese_Bright, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     // 设置自动换行模式
