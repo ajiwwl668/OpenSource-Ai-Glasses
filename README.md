@@ -44,17 +44,6 @@ This is a Linux-based open-source smart glasses project in early development sta
 
 ```bash
 # Clone the repository
-git clone https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses.git
-cd OpenSource-Ai-Glasses
-
-# Setup development environment
-./scripts/setup-dev.sh
-
-# Flash firmware
-./scripts/flash-firmware.sh
-
-# Verify installation
-./scripts/verify-installation.sh
 ```
 
 ### Hello World
@@ -62,11 +51,6 @@ cd OpenSource-Ai-Glasses
 ```bash
 # Connect to device via ADB
 adb connect [device-ip]
-
-# Run Hello World application
-adb shell /opt/apps/hello-world
-
-# Expected output: "Hello AI Glasses!"
 ```
 
 ## 📊 Hardware Specifications
