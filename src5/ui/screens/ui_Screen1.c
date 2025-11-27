@@ -29,6 +29,10 @@ lv_obj_t *ui_VideoText = NULL;
 lv_obj_t *ui_RecordText = NULL;
 lv_obj_t *ui_VideoRecordingContainer = NULL;  // 全局定义
 
+// 对外暴露的Menu3文字标签
+lv_obj_t *ui_MemoText = NULL;
+lv_obj_t *ui_MoreText = NULL;
+
 // 对外暴露的提词器相关控件
 lv_obj_t *ui_TeleprompterRecorderRect = NULL;
 lv_obj_t *ui_TeleprompterText = NULL;
@@ -40,6 +44,21 @@ lv_obj_t *ui_TeleprompTerTxT = NULL;
 
 // 对外暴露的Menu3容器
 lv_obj_t *ui_Menu3 = NULL;
+
+// 对外暴露的subMenu容器
+lv_obj_t *ui_subMenu = NULL;
+
+// 对外暴露的subMenu文字标签
+lv_obj_t *ui_SubMenu_Translate = NULL;
+lv_obj_t *ui_SubMenu_Navigation = NULL;
+lv_obj_t *ui_SubMenu_DisplayImage = NULL;
+lv_obj_t *ui_SubMenu_ASR = NULL;
+lv_obj_t *ui_SubMenu_Sleep = NULL;
+lv_obj_t *ui_SubMenu_Personalize = NULL;
+lv_obj_t *ui_SubMenu_Attitude = NULL;  // 姿态
+lv_obj_t *ui_SubMenu_Exit = NULL;     // 退出
+// 对外暴露的subMenu矩形
+lv_obj_t *ui_SubMenu_Rect = NULL;     // subMenu矩形指示器
 
 
 void ui_Screen1_screen_init(void)
@@ -583,12 +602,12 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_line_opa(ui_CheckLine2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     // 创建备忘录文字标签
-    lv_obj_t *ui_MemoText = lv_label_create(ui_Menu3);
+    ui_MemoText = lv_label_create(ui_Menu3);
     lv_obj_set_width(ui_MemoText, 600);  /// 设置固定宽度，为自动换行做准备
     lv_obj_set_height(ui_MemoText, LV_SIZE_CONTENT);   /// 高度自适应内容
     lv_obj_set_align(ui_MemoText, LV_ALIGN_TOP_LEFT);
-    lv_label_set_text(ui_MemoText, "备忘录");
-    lv_obj_set_pos(ui_MemoText, 508-32, 239);  // 位置和ui_TeleprompterText一样
+    lv_label_set_text(ui_MemoText, "议程");
+    lv_obj_set_pos(ui_MemoText, 508-32+12, 239);  // 位置和ui_TeleprompterText一样
     lv_obj_set_style_text_font(ui_MemoText, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_MemoText, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -623,8 +642,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_border_opa(ui_Menu3CenterRectH, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_clear_flag(ui_Menu3CenterRectH, LV_OBJ_FLAG_SCROLLABLE);
 
-    // 在Menu3中创建“更多”文字标签（中列位置）
-    lv_obj_t *ui_MoreText = lv_label_create(ui_Menu3);
+    // 在Menu3中创建"更多"文字标签（中列位置）
+    ui_MoreText = lv_label_create(ui_Menu3);
     lv_obj_set_width(ui_MoreText, LV_SIZE_CONTENT);
     lv_obj_set_height(ui_MoreText, LV_SIZE_CONTENT);
     lv_obj_set_align(ui_MoreText, LV_ALIGN_TOP_LEFT);
@@ -780,7 +799,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align( ui_Chinese_Bright, LV_ALIGN_TOP_LEFT);
     lv_label_set_text(ui_Chinese_Bright,"亮度");
     lv_obj_set_pos(ui_Chinese_Bright, 508, 239);  // 左上角放在(68,242)
-    lv_obj_set_style_text_font(ui_Chinese_Bright, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_Chinese_Bright, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_Chinese_Bright, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     // 设置自动换行模式
@@ -824,6 +843,135 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_color(ui_StatusLabel, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_StatusLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui_StatusLabel, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 创建subMenu容器
+    ui_subMenu = lv_obj_create(ui_Screen1);
+    lv_obj_set_size(ui_subMenu, 640, 450);  // 全屏大小
+    lv_obj_set_pos(ui_subMenu, 0, 0);
+    lv_obj_set_style_bg_color(ui_subMenu, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_subMenu, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(ui_subMenu, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_SCROLLABLE);
+    
+    // 移除边框
+    lv_obj_set_style_border_width(ui_subMenu, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_outline_width(ui_subMenu, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(ui_subMenu, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 设置subMenu默认隐藏
+    lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+    
+    // 第一行标签 (Y=239): 翻译、显示图
+    // 翻译
+    ui_SubMenu_Translate = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Translate, 600);
+    lv_obj_set_height(ui_SubMenu_Translate, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Translate, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Translate, "位置");
+    lv_obj_set_pos(ui_SubMenu_Translate, 60-10, 239);
+    lv_obj_set_style_text_font(ui_SubMenu_Translate, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Translate, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Translate, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Translate, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 位置
+    ui_SubMenu_Navigation = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Navigation, 600);
+    lv_obj_set_height(ui_SubMenu_Navigation, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Navigation, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Navigation, "电话");
+    lv_obj_set_pos(ui_SubMenu_Navigation, 280-30, 239);
+    lv_obj_set_style_text_font(ui_SubMenu_Navigation, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Navigation, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Navigation, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Navigation, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 显示图
+    ui_SubMenu_DisplayImage = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_DisplayImage, 600);
+    lv_obj_set_height(ui_SubMenu_DisplayImage, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_DisplayImage, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_DisplayImage, "显示图");
+    lv_obj_set_pos(ui_SubMenu_DisplayImage, 508-80, 239);
+    lv_obj_set_style_text_font(ui_SubMenu_DisplayImage, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_DisplayImage, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_DisplayImage, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_DisplayImage, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 第二行标签 (Y=124): ASR、休眠、个性化
+    // ASR
+    ui_SubMenu_ASR = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_ASR, 600);
+    lv_obj_set_height(ui_SubMenu_ASR, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_ASR, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_ASR, "ASR");
+    lv_obj_set_pos(ui_SubMenu_ASR, 60-10, 124);
+    lv_obj_set_style_text_font(ui_SubMenu_ASR, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_ASR, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_ASR, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_ASR, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 休眠
+    ui_SubMenu_Sleep = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Sleep, 600);
+    lv_obj_set_height(ui_SubMenu_Sleep, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Sleep, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Sleep, "休眠");
+    lv_obj_set_pos(ui_SubMenu_Sleep, 280-30, 124);
+    lv_obj_set_style_text_font(ui_SubMenu_Sleep, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Sleep, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Sleep, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Sleep, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 个性化
+    ui_SubMenu_Personalize = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Personalize, 600);
+    lv_obj_set_height(ui_SubMenu_Personalize, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Personalize, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Personalize, "个性化");
+    lv_obj_set_pos(ui_SubMenu_Personalize, 428, 124);
+    lv_obj_set_style_text_font(ui_SubMenu_Personalize, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Personalize, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Personalize, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Personalize, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 第三行标签 (Y=310): 姿态、退出
+    // 姿态
+    ui_SubMenu_Attitude = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Attitude, 600);
+    lv_obj_set_height(ui_SubMenu_Attitude, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Attitude, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Attitude, "姿态");
+    lv_obj_set_pos(ui_SubMenu_Attitude, 60-10, 310+50);
+    lv_obj_set_style_text_font(ui_SubMenu_Attitude, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Attitude, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Attitude, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Attitude, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 退出
+    ui_SubMenu_Exit = lv_label_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Exit, 600);
+    lv_obj_set_height(ui_SubMenu_Exit, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_SubMenu_Exit, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_SubMenu_Exit, "退出");
+    lv_obj_set_pos(ui_SubMenu_Exit, 280-30, 310+50);
+    lv_obj_set_style_text_font(ui_SubMenu_Exit, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_SubMenu_Exit, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_long_mode(ui_SubMenu_Exit, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_line_space(ui_SubMenu_Exit, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 创建subMenu矩形指示器
+    ui_SubMenu_Rect = lv_obj_create(ui_subMenu);
+    lv_obj_set_width(ui_SubMenu_Rect, 58);
+    lv_obj_set_height(ui_SubMenu_Rect, 2);
+    lv_obj_set_pos(ui_SubMenu_Rect, 69, 174);
+    lv_obj_set_style_radius(ui_SubMenu_Rect, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_SubMenu_Rect, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_SubMenu_Rect, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_SubMenu_Rect, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_SubMenu_Rect, LV_OBJ_FLAG_SCROLLABLE);
+    //QuiT、IMUtest
+
     
 }
 

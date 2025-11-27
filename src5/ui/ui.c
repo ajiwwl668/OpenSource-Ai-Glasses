@@ -10,7 +10,9 @@
 
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
+void ui_ui_Navgation_screen_init(void);
 lv_obj_t *ui_Screen1;
+lv_obj_t *ui_Navgation;
 lv_obj_t *ui_Image2;
 lv_obj_t *ui_Panel1;
 lv_obj_t *ui_Label1;
@@ -36,6 +38,23 @@ lv_obj_t *ui_VideoRecorderRect;
 lv_obj_t *ui_VideoLine1;
 lv_obj_t *ui_VideoLine2;
 lv_obj_t *ui_VideoLine3;
+lv_obj_t *ui_RoundedRect;//电池外框
+lv_obj_t *ui_Line;
+lv_obj_t *ui_RoundedRect2;
+lv_obj_t *ui_SlantedLine;
+lv_obj_t *ui_Chinese_status;
+lv_obj_t *ui_Chinese_Aitalk;
+lv_obj_t *ui_Chinese_Bright;
+lv_obj_t *ui_NavTopLeftLabel;
+lv_obj_t *ui_StatusLabel;
+lv_obj_t *ui_LineA;//电池格数
+lv_obj_t *ui_LineB;
+lv_obj_t *ui_LineC;
+lv_obj_t *ui_LineD;
+lv_obj_t *ui_BrightnessLine;
+lv_obj_t *ui_AiTalkLine;
+lv_obj_t *ui_VideoContainer;
+lv_obj_t *ui_Menu3;
 // CUSTOM VARIABLES
 
 // EVENTS

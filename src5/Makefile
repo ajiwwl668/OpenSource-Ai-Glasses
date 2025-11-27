@@ -98,7 +98,7 @@ CFLAGS          ?= -O0 -g0 -I. -I$(LVGL_DIR)/ -I$(UI_DIR)  $(WARNINGS) \
                     -DLV_LOG_TRACE_MEM=0 \
                     -DLV_LOG_TRACE_TIMER=0
 
-LDFLAGS         := -L/home/kkk/luckfox-pico/sysdrv/source/kernel/lib -lm -lpthread -ldl
+LDFLAGS         := -L/home/kkk/luckfox-pico/sysdrv/source/kernel/lib -L. -lm -lpthread -ldl -lbat
 BIN             = display
 BUILD_DIR       = ./build
 BUILD_OBJ_DIR   = $(BUILD_DIR)/obj

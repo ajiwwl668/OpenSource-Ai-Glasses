@@ -26,12 +26,15 @@
 #include <sys/wait.h>
 #include "ui.h"
 #include "lvgl/lvgl.h"
+#include "bat_capacity.h"
 // #include "ui.h"       // 如果你用的是 SquareLine 的 ui_init()
 #define SPI_DEVICE_PATH "/dev/spidev0.0"
+#define IMU_ACCEL_Y_PATH "/sys/bus/iio/devices/iio:device2/in_accel_y_raw"
 #define SHM_NAME "/display_shm"       // 共享内存名称
 #define SEM_NAME "/display_sem"       // 信号量名称
 #define BUFFER_SIZE 128               // 消息缓冲区大小
 #define ACCUMULATED_TEXT_SIZE 1024    // 累积文本缓冲区大小
+
 // 在main.c的全局变量区域添加
 extern lv_obj_t *ui_Label2;  // 声明外部变量，指向"微笑"标签
 extern const lv_img_dsc_t camera;  // 声明camera图标
@@ -114,6 +117,9 @@ bool Not_Add_To_TextContainer = false;//一个标志位 防止有一些命令文
 int spi_init();
 int setup();
 void loop();
+static void imu_hud_init(void);
+static void imu_hud_set_enabled(bool enable);
+void update_battery_display(void);
 uint8_t* load_bmp_image_fast(const char* filename, uint16_t* width, uint16_t* height);
 uint8_t* load_raw_image(const char* filename, uint16_t* width, uint16_t* height);
 uint8_t* load_image(const char* filename, uint16_t* width, uint16_t* height);
@@ -190,6 +196,109 @@ static inline void wake_display_and_touch_activity(void) {
     last_activity_time = time(NULL);  // 统一更新最后活动时间
 }
 
+// ================== IMU HUD 服务（仅在 IMUtest-ON 时读取并判断） ==================
+static pthread_t g_imu_hud_thread;
+static volatile bool g_imu_hud_thread_running = false;
+static volatile bool g_imu_hud_enabled = false;
+static volatile bool g_imu_hud_triggered = false;
+
+static int read_sysfs_int_fd_simple(int fd, int *out) {
+    char buf[64];
+    if (lseek(fd, 0, SEEK_SET) < 0) return -1;
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    if (n <= 0) return -1;
+    buf[n] = '\0';
+    *out = atoi(buf);
+    return 0;
+}
+
+static void* imu_hud_thread(void* arg) {
+    (void)arg;
+    int fd_ay = open(IMU_ACCEL_Y_PATH, O_RDONLY);
+    if (fd_ay < 0) {
+        perror("IMU HUD: open aY failed");
+        return NULL;
+    }
+    while (g_imu_hud_thread_running) {
+        if (g_imu_hud_enabled) {
+            int ay = 0;
+            if (read_sysfs_int_fd_simple(fd_ay, &ay) == 0) {
+                if (ay < -7300) {
+                    g_imu_hud_triggered = true;
+                    printf("IMU HUD: ay > 7300\n");
+                }
+            }
+            usleep(100 * 1000); // 100ms 仅在启用时轮询
+            //printf("IMU HUD: %d\n", ay);
+        } else {
+            usleep(150 * 1000); // 未启用时降低占用
+        }
+    }
+    close(fd_ay);
+    return NULL;
+}
+
+static void imu_hud_set_enabled(bool enable) {
+    g_imu_hud_enabled = enable;
+}
+
+static void imu_hud_init(void) {
+    if (g_imu_hud_thread_running) return;
+    g_imu_hud_thread_running = true;
+    if (pthread_create(&g_imu_hud_thread, NULL, imu_hud_thread, NULL) != 0) {
+        perror("IMU HUD: thread create failed");
+        g_imu_hud_thread_running = false;
+    }
+}
+// ================== IMU HUD 服务结束 ==================
+
+// ================== 电池显示更新函数 ==================
+/**
+ * 更新电池电量显示
+ * 根据电量显示不同的电池格子：
+ * >80%: 显示 A、B、C、D 全部
+ * >60%: 显示 B、C、D
+ * >40%: 显示 C、D
+ * >20%: 显示 D
+ * <=20%: 只显示 D
+ */
+void update_battery_display(void) {
+    // 读取电池电量
+    int battery_capacity = get_bat_capacity();
+    printf("电池电量: %d%%\n", battery_capacity);
+    
+    // 先隐藏所有电池格子
+    if (ui_LineA != NULL) lv_obj_add_flag(ui_LineA, LV_OBJ_FLAG_HIDDEN);
+    if (ui_LineB != NULL) lv_obj_add_flag(ui_LineB, LV_OBJ_FLAG_HIDDEN);
+    if (ui_LineC != NULL) lv_obj_add_flag(ui_LineC, LV_OBJ_FLAG_HIDDEN);
+    if (ui_LineD != NULL) lv_obj_add_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    
+    // 根据电量显示相应的格子
+    if (battery_capacity > 80) {
+        // >80%: 显示 A、B、C、D 全部
+        if (ui_LineA != NULL) lv_obj_clear_flag(ui_LineA, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineB != NULL) lv_obj_clear_flag(ui_LineB, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineC != NULL) lv_obj_clear_flag(ui_LineC, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineD != NULL) lv_obj_clear_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    } else if (battery_capacity > 60) {
+        // >60%: 显示 B、C、D
+        if (ui_LineB != NULL) lv_obj_clear_flag(ui_LineB, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineC != NULL) lv_obj_clear_flag(ui_LineC, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineD != NULL) lv_obj_clear_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    } else if (battery_capacity > 40) {
+        // >40%: 显示 C、D
+        if (ui_LineC != NULL) lv_obj_clear_flag(ui_LineC, LV_OBJ_FLAG_HIDDEN);
+        if (ui_LineD != NULL) lv_obj_clear_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    } else if (battery_capacity > 20) {
+        // >20%: 显示 D
+        if (ui_LineD != NULL) lv_obj_clear_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        // <=20%: 只显示 D（低电量警告）
+        if (ui_LineD != NULL) lv_obj_clear_flag(ui_LineD, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+// ================== 电池显示更新函数结束 ==================
+
 // 读取文件并显示到容器的通用函数
 static void read_and_display_file(const char* filepath, int* read_position, char* buffer, const char* error_msg) {
     // 先清空控件之前的文本
@@ -256,6 +365,8 @@ void* display_update_thread(void* arg) {
         // 检查是否有新消息
         //if (strcmp(shared_memory, last_message) != 0) {
             //strncpy(last_message, shared_memory, BUFFER_SIZE - 1);
+            // 默认关闭IMU HUD，仅当收到 IMUtest-ON 时开启
+            imu_hud_set_enabled(false);
             
             // 处理"init"指令
             if (strcmp(shared_memory, "GPIOA") == 0 && !display_inited) {
@@ -345,6 +456,9 @@ void* display_update_thread(void* arg) {
                 //显示状态信息和亮度
                 lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
                 lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);//隐藏Menu3容器
+                
+                // 更新电池显示
+                update_battery_display();
             }
             else if (strcmp(shared_memory, "BLE DissCon") == 0){
                 wake_display_and_touch_activity();
@@ -435,18 +549,40 @@ void* display_update_thread(void* arg) {
                 hide_smile_flag = true;
                 lv_label_set_text(ui_RecordText, "录音");
             }
-            else if (strcmp(shared_memory, "TranslatE-ON") == 0) {
+            else if (strcmp(shared_memory, "TranslatE-ON") == 0) {//位置
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
                 hide_smile_flag = true;
-                lv_label_set_text(ui_StatusLabel, "请打开手机APP");
+                //lv_label_set_text(ui_StatusLabel, "请打开手机APP");
+                
+                // 向上移动ui_subMenu 50个像素点
+                if (ui_subMenu != NULL) {
+                    lv_coord_t current_x = lv_obj_get_x(ui_subMenu);
+                    lv_coord_t current_y = lv_obj_get_y(ui_subMenu);
+                    lv_obj_set_pos(ui_subMenu, current_x, current_y - 50);
+                }
+
             }  
-            else if (strcmp(shared_memory, "NavigaT-ON") == 0) {
+            else if (strcmp(shared_memory, "NavigaT-ON") == 0) {//电话
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
                 hide_smile_flag = true;
                 //需要打开电话簿
                 lv_label_set_text(ui_StatusLabel, " ");
+                lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                read_and_display_file("/usr/bin/phone.txt", &memo_read_position, 
+                                      memo_buffer, "无法打开电话本");
+            }  
+            else if (strcmp(shared_memory, "IMUtest-ON") == 0) {//姿态
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                // 进入IMU HUD模式：隐藏子菜单，仅在本模式下轮询aZ
+                if (ui_subMenu != NULL) {
+                    lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                imu_hud_set_enabled(true);
             }  
             else if (strcmp(shared_memory, "TelePrompTer") == 0) {
                 wake_display_and_touch_activity();
@@ -625,6 +761,53 @@ void* display_update_thread(void* arg) {
                     lv_obj_set_pos(ui_SubMenu_Rect, 471, 289);
                 }
             }
+            else if (strcmp(shared_memory, "DisplayPhoto-ON") == 0) {//显示图被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_subMenu != NULL) {
+                    lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                load_and_display_image(NULL);//显示图片
+            }
+            else if (strcmp(shared_memory, "FontSize-ON") == 0) {//大小字
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+
+                // 将所有SubMenu标签的字体改为ui_font_alibaba_30
+                if (ui_SubMenu_Translate != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Translate, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_Navigation != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Navigation, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_DisplayImage != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_DisplayImage, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_ASR != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_ASR, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_Sleep != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Sleep, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_Personalize != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Personalize, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_Attitude != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Attitude, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+                if (ui_SubMenu_Exit != NULL) {
+                    lv_obj_set_style_text_font(ui_SubMenu_Exit, &ui_font_alibaba_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+
+                // 强制刷新屏幕，让用户看得到效果
+                lv_obj_invalidate(lv_scr_act());  // invalidate整个屏幕
+                lv_refr_now(lv_disp_get_default()); // 强制刷新
+
+            }
             else if (strcmp(shared_memory, "bd_ASR") == 0) {//ASR被选定
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
@@ -656,7 +839,7 @@ void* display_update_thread(void* arg) {
                     lv_obj_set_pos(ui_SubMenu_Rect, 269, 174);
                 }
 
-
+                lv_label_set_text(ui_StatusLabel, "  ");//清空上一个
                 
                 // 隐藏ui_Label2和ui_Menu3
                 if (ui_Label2 != NULL) {
@@ -751,16 +934,16 @@ void* display_update_thread(void* arg) {
 
 
                 // 指令到中文提示的映射
-                if (strcmp(shared_memory, "FinisheD") == 0) {
+                if (strcmp(shared_memory, "finished") == 0) {
                     Not_Add_To_TextContainer = false;
                     lv_label_set_text(ui_StatusLabel, "触摸镜腿 开始对话");
                     // 不再放进 last_message、shared_memory，也不显示到 ui_Label2
                     continue;
-                } else if (strcmp(shared_memory, "RecordinG") == 0) {
+                } else if (strcmp(shared_memory, "Recording") == 0) {
                     Not_Add_To_TextContainer = false;
                     lv_label_set_text(ui_StatusLabel, "录音中 松手发送");
                     continue;
-                } else if (strcmp(shared_memory, "UploaD") == 0) {
+                } else if (strcmp(shared_memory, "Upload") == 0) {
                     Not_Add_To_TextContainer = false;
                     lv_label_set_text(ui_StatusLabel, "上传中");
                     continue;
@@ -804,6 +987,9 @@ void* display_update_thread(void* arg) {
                 // 取消隐藏 ui_Label2
                 if (ui_Label2)           lv_obj_clear_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_scroll_to_y(ui_TextContainer, LV_COORD_MAX, LV_ANIM_OFF);//滚动到底
+                                // 强制刷新屏幕，让用户看得到效果
+                //lv_obj_invalidate(lv_scr_act());  // invalidate整个屏幕
+                //lv_refr_now(lv_disp_get_default()); // 强制刷新
             }
             // 在display_update_thread函数中修改处理逻辑
             
@@ -865,6 +1051,9 @@ int setup() {
     lv_init();          // 初始化LVGL图形库
     spi_init();         // 初始化SPI设备
     panel_init();       // 初始化面板
+
+            // 启动IMU HUD后台服务线程（空闲等待，非IMUtest-ON不读取）
+            imu_hud_init();
 
             // 设置信号处理
             signal(SIGINT, cleanup);
@@ -1151,9 +1340,14 @@ int main() {
                 
 
                 // 容器显隐改由 display_update_thread 决定，这里仅在可见时自动滚动
-                
                 if (ui_TextContainer && !lv_obj_has_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN)) {
-                    lv_obj_scroll_to_y(ui_TextContainer, LV_COORD_MAX, LV_ANIM_OFF);
+                    /* 确保标签完成重新布局后再执行滚动到底，避免滚动区高度仍为旧值 */
+                    lv_obj_update_layout(ui_Label2);
+                    lv_obj_update_layout(ui_TextContainer);
+                    /* 计算应滚动到的偏移 = (内容高度 - 容器高度)，小于0则置0 */
+                    lv_coord_t target_offset = lv_obj_get_height(ui_Label2) - lv_obj_get_height(ui_TextContainer);
+                    if (target_offset < 0) target_offset = 0;
+                    lv_obj_scroll_to_y(ui_TextContainer, target_offset, LV_ANIM_OFF);
                 }
 
                 lv_obj_invalidate(lv_scr_act());  // 关键修改： invalidate整个屏幕
@@ -1181,7 +1375,20 @@ int main() {
             }
         }
         
-        usleep(10 * 1000);
+        // IMU HUD 触发显示（仅在IMUtest-ON下轮询且满足条件时触发一次）
+        if (g_imu_hud_triggered) {
+            wake_display_and_touch_activity();
+            if (ui_subMenu != NULL) {
+                lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+            }
+            lv_label_set_text(ui_StatusLabel, "抬头触发");
+            printf("TAITOU");
+            lv_obj_invalidate(lv_scr_act());  // 关键修改： invalidate整个屏幕
+            lv_refr_now(lv_disp_get_default()); // 强制刷新
+            g_imu_hud_triggered = false;
+        }
+
+        usleep(10 * 1000);//10ms
     }
     printf("Succsss\n");
     close(spi_file);
@@ -1368,7 +1575,7 @@ uint8_t* load_image(const char* filename, uint16_t* width, uint16_t* height) {
  * @param filename 图片文件路径（默认：/test/test.bmp）
  */
 int load_and_display_image(const char* filename) {
-    const char* default_path = "/test/test.bmp";
+    const char* default_path = "/usr/bin/1.bmp";
     if (!filename) {
         filename = default_path;
     }
@@ -2131,7 +2338,7 @@ int load_image_sequence(const char* directory, char*** filenames, int* count) {
     *filenames = malloc(SEQUENCE_COUNT * sizeof(char*));
     
     // 构建固定的5个文件路径
-    for (int i = 0; i < SEQUENCE_COUNT; i++) {
+    for (int i = 0; i < 1; i++) {
         // 分配足够的内存存储路径
         (*filenames)[i] = malloc(strlen(directory) + 20);  // 足够存储路径 + "/X.bmp\0"
         
@@ -2584,22 +2791,11 @@ void demo_image_sequence(const char* directory) {
     struct sequence_animation_t fast_play = {
         .target_fps = 0.0f,        // 最快速度
         .pingpong_mode = true,     // ping-pong模式
-        .loop_count = 5,           // 播放5次完整循环
+        .loop_count = 1,           // 播放5次完整循环
         .show_performance = true   // 显示详细性能
     };
     play_image_sequence(filenames, count, &fast_play);
     
-    usleep(1000 * 1000);  // 等待1秒
-    
-    // 演示2：固定帧率播放
-    printf("⏱️  演示2：5 FPS固定帧率播放 (1次循环)\n");
-    struct sequence_animation_t fixed_fps = {
-        .target_fps = 5.0f,        // 5 FPS
-        .pingpong_mode = false,    // 普通循环
-        .loop_count = 1,           // 播放1次
-        .show_performance = true   // 显示性能
-    };
-    play_image_sequence(filenames, count, &fixed_fps);
     
     // 清理内存
     free_image_sequence(filenames, count);
