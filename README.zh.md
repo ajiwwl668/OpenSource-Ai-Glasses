@@ -18,7 +18,7 @@
 
 **联系作者**: iam5stilllearning@foxmail.com
 
-**语言**: English Version | [中文版本](README.zh.md)
+**语言**: 中文版本 | [English Version](README.md)
 
 ## ✨ 核心特性
 
@@ -34,26 +34,53 @@
 
 ## 🚀 快速开始
 
-### 前置条件
+> **💡 提示**: 您收到的设备已预装固件，可直接使用。只有在需要修改固件或升级系统时才需要重新编译和烧录固件。
 
-- Linux开发环境（推荐Ubuntu 20.04+）
-- Git和基础开发工具
-- USB数据线连接设备
+### 使用Docker开发环境（推荐）
 
-### 安装
+推荐使用Docker作为开发环境，支持固件开发和应用程序开发。项目提供两种镜像：
 
+**完整镜像**（推荐新手）- 包含完整SDK，开箱即用（如果无法拉取镜像可以参考 [Docker部署指南](docs/DOCKER_DEPLOYMENT.md) 中的【方式二：从网盘下载镜像文件】）：
 ```bash
-# 克隆仓库
-待完善
+# 从Docker Hub拉取镜像
+docker pull aiglasses/rk-rv1106b:ready
+
+# 运行开发容器
+docker run -it --name rk1106_dev aiglasses/rk-rv1106b:ready bash -l
+
+# 编译固件（仅在需要修改系统时）
+./build.sh
+
+# 拷贝固件到本机（仅在需要烧录时）
+docker cp rk1106_dev:/opt/aiglass_dev_env/output/image/update.img ./update.img
+
+# 开发应用程序
+# Docker环境中包含完整的开发工具链，可直接进行应用开发
 ```
 
-### Hello World
-
+**Bare镜像**（推荐使用VS Code/Claude Code/Cursor等IDE的开发者）- 系统SDK放在宿主机：
 ```bash
-# 通过ADB连接设备
-adb shell
+# 拉取bare镜像
+docker pull aiglasses/rk-rv1106b-bare:ready
 
+# 运行并挂载系统SDK目录
+docker run -it \
+  -v /path/to/system_sdk/rv1106b_rv1103b_linux_ipc_v1.0.0_20241016:/opt/aiglass_dev_env \
+  --name rk1106_dev_bare \
+  aiglasses/rk-rv1106b-bare:ready bash -l
 ```
+
+> **提示**: Bare镜像适合使用宿主机IDE（VS Code、Claude Code、Cursor等）进行固件开发，可以享受代码智能提示、AI辅助编程等功能，固件代码修改实时同步到容器。
+
+> **说明**: 这里的"系统SDK"是指用于固件开发的 `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016`，不是应用开发SDK。应用开发SDK会单独提供。
+
+详细说明请查看 [Docker部署指南](docs/DOCKER_DEPLOYMENT.md)
+
+**固件烧录**: 固件编译完成后，请参考 [固件烧录指南](docs/FIRMWARE_FLASHING.md) 将固件烧录到设备。
+
+**应用开发**: Docker环境提供了完整的开发工具链，可用于开发用户级应用程序。详细说明请查看 [应用开发指南](docs/APPLICATION_DEVELOPMENT.md)。
+
+
 
 ## 📊 硬件规格
 
@@ -157,17 +184,60 @@ adb shell
 ## 🏗️ 系统架构
 
 ```mermaid
-graph TD
-待完善
+┌─────────────────────────────────────────────┐
+│                应用层 (Application Layer)    │
+│   · 应用A                                    │
+│   · 应用B                                    │
+│   · 应用C                                    │
+└─────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────┐
+│            应用 SDK 层 (ai_client_sdk)      │
+│   · 提供统一接口：拍照、录音、播放、GPIO等     │
+│   · 封装设备控制逻辑与系统事件回调             │
+│   · 管理会话与云端AI调用 (ASR/TTS/LLM)        │
+│   · 向应用层隐藏底层复杂度                    │
+└─────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────┐
+│            系统层 (System Layer)            │
+│  ├── Audio Manager：音频录制与播放           │
+│  ├── Camera Manager：拍照与图像缓存          │
+│  ├── GPIO Manager：按键与信号控制             │
+│  ├── Network Manager：WiFi连接与监控          │
+│  ├── Power Manager：电量/温度监测             │
+│  ├── Guard Service：心跳、重启、电源管理       │
+│  ├── Event Dispatcher：模块事件分发总线       │
+│  ├── Cloud Bridge：AI云服务接口              │
+│      ↳ ASR：语音识别                         │
+│      ↳ TTS：语音合成                         │
+│      ↳ LLM：AI对话与多模态理解               │
+└─────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────┐
+│         硬件抽象与驱动层 (HAL/Driver Layer)  │
+│  ├── Audio HAL / ALSA / PCM                 │
+│  ├── Camera HAL / V4L2 / ISP / rkaiq        │
+│  ├── GPIO / I2C / SPI / PWM 控制接口         │
+│  ├── WiFi / 蓝牙 / PMIC / ADC 电量检测       │
+│  ├── Sensor Hub：IMU 等传感器   │
+│  ├── Linux Kernel / Buildroot / BusyBox     │
+└─────────────────────────────────────────────┘
+
 ```
 
 ## 📚 文档
 
 - [📖 完整文档](docs/README.md)
 - [🚀 入门指南](docs/tutorials/beginner/getting-started.md)
+- [🐳 Docker部署指南](docs/DOCKER_DEPLOYMENT.md) | [English](docs/DOCKER_DEPLOYMENT.en.md)
+- [💻 应用开发指南](docs/APPLICATION_DEVELOPMENT.md) | [English](docs/APPLICATION_DEVELOPMENT.en.md)
+- [⚡ 固件烧录指南](docs/FIRMWARE_FLASHING.md) | [English](docs/FIRMWARE_FLASHING.en.md)
 - [🔧 硬件规格](docs/hardware/specifications.md)
-- [💻 固件开发](docs/firmware/getting-started.md)
-- [📱 应用开发](docs/software/app-development.md)
+- [💾 固件开发](docs/firmware/getting-started.md)
 - [🔍 故障排除](docs/troubleshooting/common-issues.md)
 
 ## 🛠️ 开发
@@ -245,4 +315,4 @@ graph TD
 
 **注意**: 本项目处于早期开发阶段（文档完整度5%）。我们积极寻求贡献者和反馈！
 
-**最后更新**: 2025-10-27 | **版本**: v1.0.0
+**最后更新**: 2025-12-1 | **版本**: v1.0.0

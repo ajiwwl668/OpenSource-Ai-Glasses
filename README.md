@@ -34,24 +34,51 @@ This is a Linux-based open-source smart glasses project in early development sta
 
 ## 🚀 Quick Start
 
-### Prerequisites
+> **💡 Note**: Your device comes with pre-installed firmware and is ready to use. You only need to rebuild and flash firmware when modifying the system or upgrading.
 
-- Linux development environment (Ubuntu 20.04+ recommended)
-- Git and basic development tools
-- USB-C cable for device connection
+### Using Docker Development Environment (Recommended)
 
-### Installation
+We recommend using Docker as the development environment, which supports both firmware development and application development. Two image types available:
 
+**Complete Image** (Recommended for beginners) - Includes full SDK, ready to use:
 ```bash
-# Clone the repository
+# Pull image from Docker Hub
+docker pull aiglasses/rk-rv1106b:ready
+
+# Run development container
+docker run -it --name rk1106_dev aiglasses/rk-rv1106b:ready bash -l
+
+# Build firmware (only when modifying system)
+./build.sh
+
+# Copy firmware to host (only when flashing needed)
+docker cp rk1106_dev:/opt/aiglass_dev_env/output/image/update.img ./update.img
+
+# Develop applications
+# The Docker environment includes a complete toolchain for application development
 ```
 
-### Hello World
-
+**Bare Image** (Recommended for developers using VS Code/Claude Code/Cursor) - Mount host SDK:
 ```bash
-# Connect to device via ADB
-adb connect [device-ip]
+# Pull bare image
+docker pull aiglasses/rk-rv1106b-bare:ready
+
+# Run with system SDK directory mounted
+docker run -it \
+  -v /path/to/system_sdk/rv1106b_rv1103b_linux_ipc_v1.0.0_20241016:/opt/aiglass_dev_env \
+  --name rk1106_dev_bare \
+  aiglasses/rk-rv1106b-bare:ready bash -l
 ```
+
+> **Note**: Bare image is ideal for firmware development using host IDEs (VS Code, Claude Code, Cursor, etc.), enabling intelligent code completion, AI-assisted programming, and real-time firmware code synchronization.
+
+> **Clarification**: The "system SDK" here refers to `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016` for firmware development, not the application development SDK which will be provided separately.
+
+See [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) for details.
+
+**Firmware Flashing**: After compilation, please refer to [Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) to flash the firmware to your device.
+
+**Application Development**: The Docker environment provides a complete development toolchain for building user-level applications. See [Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) for details.
 
 ## 📊 Hardware Specifications
 
@@ -181,9 +208,11 @@ graph TD
 
 - [📖 Complete Documentation](docs/README.md)
 - [🚀 Getting Started Guide](docs/tutorials/beginner/getting-started.md)
+- [🐳 Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) | [中文](docs/DOCKER_DEPLOYMENT.md)
+- [💻 Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) | [中文](docs/APPLICATION_DEVELOPMENT.md)
+- [⚡ Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) | [中文](docs/FIRMWARE_FLASHING.md)
 - [🔧 Hardware Specifications](docs/hardware/specifications.md)
-- [💻 Firmware Development](docs/firmware/getting-started.md)
-- [📱 Application Development](docs/software/app-development.md)
+- [💾 Firmware Development](docs/firmware/getting-started.md)
 - [🔍 Troubleshooting](docs/troubleshooting/common-issues.md)
 
 ## 🛠️ Development
