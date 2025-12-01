@@ -173,7 +173,7 @@ void panel_init(void) {
     send_cmd(SPI_WR_ENABLE);                //写入使能
     wr_cur_reg(30);                          //设置电流寄存器
     wr_status_reg(SPI_WR_STATUS_REG1, 0x10);//写状态寄存器1，关闭demura
-    wr_lum_reg(1000);                       //写亮度寄存器
+    wr_lum_reg(3000);                       //写亮度寄存器
     wr_status_reg(SPI_WR_STATUS_REG2, 0x05);//写状态寄存器2
     clr_cache();                            //清除缓存
     wr_offset_reg(0, 0);                    //设置左上角偏移量
@@ -181,7 +181,7 @@ void panel_init(void) {
     wr_offset_reg(24, 0);                   //设置左下角的偏移量
     wr_offset_reg(24, 20);                  //设置右下角的偏移量
     wr_offset_reg(12, 10);                  //设置实际偏移量，屏幕居中
-    wr_lum_reg(1000);                       //写亮度寄存器
+    wr_lum_reg(3000);                       //写亮度寄存器原本1000
     wr_cur_reg(30);                          //设置电流寄存器
     set_mirror_mode(1);                     //默认镜像模式
     send_cmd(SPI_DISPLAY_ENABLE);           //设置显示启用

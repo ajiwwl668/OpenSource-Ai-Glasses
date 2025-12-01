@@ -17,7 +17,9 @@ extern "C" {
 
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
+void ui_ui_Navgation_screen_init(void);
 extern lv_obj_t *ui_Screen1;
+extern lv_obj_t *ui_Navgation;
 extern lv_obj_t *ui_Image2;
 extern lv_obj_t *ui_Panel1;
 extern lv_obj_t *ui_Label1;
@@ -43,8 +45,57 @@ extern lv_obj_t *ui_VideoRecorderRect;
 extern lv_obj_t *ui_VideoLine1;
 extern lv_obj_t *ui_VideoLine2;
 extern lv_obj_t *ui_VideoLine3;
+extern lv_obj_t *ui_RoundedRect;
+extern lv_obj_t *ui_Line;
+extern lv_obj_t *ui_RoundedRect2;
+extern lv_obj_t *ui_SlantedLine;
+extern lv_obj_t *ui_Chinese_status;
+extern lv_obj_t *ui_Chinese_Bright;
+extern lv_obj_t *ui_Chinese_Aitalk;
+extern lv_obj_t *ui_StatusLabel;
+extern lv_obj_t *ui_LineA;
+extern lv_obj_t *ui_LineB;
+extern lv_obj_t *ui_LineC;
+extern lv_obj_t *ui_LineD;
+extern lv_obj_t *ui_BrightnessLine;
+extern lv_obj_t *ui_AiTalkLine;
+// 新增录像机容器
+extern lv_obj_t *ui_VideoContainer;
+// 新增中心边框容器（270x480）
+extern lv_obj_t *ui_VideoRecordingContainer;
+// 新增录像机文字标签
+extern lv_obj_t *ui_CameraText;
+extern lv_obj_t *ui_VideoText;
+extern lv_obj_t *ui_RecordText;
+// 新增Menu3文字标签
+extern lv_obj_t *ui_MemoText;
+extern lv_obj_t *ui_MoreText;
+// 新增提词器相关控件
+extern lv_obj_t *ui_TeleprompterRecorderRect;
+extern lv_obj_t *ui_TeleprompterText;
+extern lv_obj_t *ui_TeleprompterT;
+// 新增提词器容器和文字控件
+extern lv_obj_t *ui_TeleprompTerContainer;
+extern lv_obj_t *ui_TeleprompTerTxT;
 // CUSTOM VARIABLES
+extern lv_obj_t *ui_NavTopLeftLabel;
 
+// 新增：文本滚动容器对外暴露
+extern lv_obj_t *ui_TextContainer;
+// 新增Menu3容器
+extern lv_obj_t *ui_Menu3;
+// 新增subMenu容器
+extern lv_obj_t *ui_subMenu;
+// 新增subMenu文字标签
+extern lv_obj_t *ui_SubMenu_Translate;
+extern lv_obj_t *ui_SubMenu_Navigation;
+extern lv_obj_t *ui_SubMenu_DisplayImage;
+extern lv_obj_t *ui_SubMenu_ASR;
+extern lv_obj_t *ui_SubMenu_Sleep;
+extern lv_obj_t *ui_SubMenu_Personalize;
+extern lv_obj_t *ui_SubMenu_Attitude;
+extern lv_obj_t *ui_SubMenu_Exit;
+extern lv_obj_t *ui_SubMenu_Rect;
 // EVENTS
 extern lv_obj_t *ui____initial_actions0;
 
@@ -57,7 +108,7 @@ LV_IMG_DECLARE( ui_img_lanya_png);   // assets/lanya.png
 LV_FONT_DECLARE( ui_font_Font1);
 LV_FONT_DECLARE( ui_font_Font2);
 LV_FONT_DECLARE( ui_font_alibaba_48);
-
+LV_FONT_DECLARE( ui_font_alibaba_30);
 // UI INIT
 void ui_init(void);
 

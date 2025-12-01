@@ -17,11 +17,11 @@
 ./adb push .\display ./usr/bin
 ./adb shell "chmod +x /usr/bin/display"
 
-./adb push .\btgatt-server ./usr/bin
-./adb shell "chmod +x /usr/bin/btgatt-server"
-
 ./adb push .\launch ./usr/bin
 ./adb shell "chmod +x /usr/bin/launch"
+
+./adb push .\btgatt-server ./usr/bin
+./adb shell "chmod +x /usr/bin/btgatt-server"
 
 ./adb push .\ffmpeg ./usr/bin
 ./adb shell "chmod +x /usr/bin/ffmpeg"
@@ -42,6 +42,15 @@
 ./adb shell "mkdir /userdata/Rec"
 
 ./adb shell "reboot"
+
+./adb push .\TeleprompTer.txt ./usr/bin
+./adb push .\1.bmp ./usr/bin
+
+adb push .\rk_mpi_ai_test ./oem/usr/bin
+adb shell "chmod 777 ./oem/usr/bin/rk_mpi_ai_test"
+
+adb push .\simple_vi_bind_venc_with_A ./oem/usr/bin/simple_vi_bind_venc
+adb shell "chmod 777 ./oem/usr/bin/simple_vi_bind_venc"
 
 #ps | grep -v '\['
 #显示进程
