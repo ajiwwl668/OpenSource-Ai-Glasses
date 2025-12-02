@@ -11,6 +11,7 @@
 [Documentation](docs/README.md) • [Quick Start](docs/tutorials/beginner/getting-started.md) • [API Reference](docs/firmware/api-reference.md) • [Community](docs/community/contributing.md)
 
 ---
+<img width="1024" height="747" alt="image" src="https://github.com/user-attachments/assets/af4de9f5-f502-4a74-8a2a-f5a762ff83b9" />
 
 ## 📋 Project Overview
 
@@ -181,28 +182,8 @@ New employees can quickly get started with AR guidance, reducing training costs 
 
 ## 🏗️ System Architecture
 
-```mermaid
-graph TD
-    A[Applications] --> B[API Layer]
-    B --> C[Services]
-    C --> D[Hardware Drivers]
-    D --> E[Linux Kernel]
-    E --> F[Hardware]
+<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/79d7c2cd-09e7-43ab-b8d6-11b6b64cd5e0" />
 
-    G[WiFi] --> D
-    H[Bluetooth] --> D
-    I[USB] --> D
-    J[Display] --> D
-    K[Camera] --> D
-    L[Audio] --> D
-
-    style A fill:#e3f2fd
-    style B fill:#f3e5f5
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f1f8e9
-```
 
 ## 📚 Documentation
 
