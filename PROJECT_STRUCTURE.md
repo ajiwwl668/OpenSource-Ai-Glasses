@@ -20,7 +20,7 @@ OpenSource-Ai-Glasses/
 ├── PROJECT_STRUCTURE.md       # 本文档
 │
 ├── docs/                      # 📚 项目文档
-├── firmware/                  # 🔧 固件源码
+├── firmware/                  # 🔧 固件开发
 ├── examples/                  # 📝 示例程序
 ├── hardware/                  # ⚙️ 硬件相关文件
 ├── resources/                 # 📦 资源文件
@@ -56,40 +56,44 @@ docs/
 
 ---
 
-### 🔧 firmware/ - 固件源码
+### 🔧 firmware/ - 固件开发
 
-核心固件程序源代码，需要在瑞芯微RV1106B SDK环境中编译。
+固件相关的所有内容，包括源码、脚本和工具。需要在瑞芯微RV1106B SDK环境中编译。
 
 ```
 firmware/
-├── display/                   # JBD显示屏主程序
-│   ├── main.c                # 主程序入口
-│   ├── jbd013_api.c          # JBD显示屏驱动API
-│   ├── hal_driver.c          # 硬件抽象层驱动
-│   ├── ui/                   # LVGL UI界面
-│   ├── lvgl/                 # LVGL图形库
-│   └── Makefile              # 编译配置
-│
-├── launcher/                  # 启动管理器
-│   ├── FFmLauncher/          # FFmpeg和摄像头启动管理
-│   │   ├── launch.cpp        # 摄像头和视频处理启动器
-│   │   └── CMakeLists.txt    # CMake配置
+├── src/                       # 应用程序源码
+│   ├── display/              # JBD显示屏主程序
+│   │   ├── main.c           # 主程序入口
+│   │   ├── jbd013_api.c     # JBD显示屏驱动API
+│   │   ├── hal_driver.c     # 硬件抽象层驱动
+│   │   ├── ui/              # LVGL UI界面
+│   │   └── Makefile         # 编译配置
 │   │
-│   └── TouchPadManager/       # 触摸板GPIO管理器
-│       ├── launch.cpp         # 触摸板事件处理
-│       └── CMakeLists.txt     # CMake配置
+│   ├── launcher/             # 启动管理器
+│   │   ├── FFmLauncher/     # FFmpeg和摄像头启动管理
+│   │   └── TouchPadManager/ # 触摸板GPIO管理器
+│   │
+│   └── media_service/        # WiFi媒体服务
+│       ├── ai_media_service.c
+│       └── Makefile.ai_media_service
 │
-└── media_service/             # WiFi媒体服务
-    ├── ai_media_service.c     # WiFi图传和相册同步服务
-    ├── Makefile.ai_media_service
-    └── How to USE.txt         # 使用说明
+├── scripts/                   # 系统脚本
+│   ├── S99wifi               # WiFi启动脚本
+│   ├── start_wifi.sh         # WiFi连接脚本
+│   ├── expect.sh             # 自动化交互脚本
+│   └── wpa_supplicant.conf   # WiFi配置
+│
+└── tools/                     # 辅助工具
+    ├── bin/                  # 可执行工具
+    └── lib/                  # 工具库
 ```
 
 #### 编译说明
 
 **display程序**：
 ```bash
-cd firmware/display
+cd firmware/src/display
 make
 # 生成 build/bin/display
 ```
@@ -97,28 +101,28 @@ make
 **launcher程序**：
 ```bash
 # FFmLauncher
-cd firmware/launcher/FFmLauncher/build-arm
+cd firmware/src/launcher/FFmLauncher/build-arm
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake
 make
 
 # TouchPadManager
-cd firmware/launcher/TouchPadManager/build-arm
+cd firmware/src/launcher/TouchPadManager/build-arm
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake
 make
 ```
 
 **media_service**：
 ```bash
-cd firmware/media_service
+cd firmware/src/media_service
 make -f Makefile.ai_media_service
 ```
 
 #### 运行说明
 
 编译后的程序对应关系：
-- `firmware/display/` → `Applications/display`
-- `firmware/launcher/FFmLauncher/` → `Applications/launch`
-- `firmware/media_service/` → `Applications/ai_media_service`
+- `firmware/src/display/` → `Applications/display`
+- `firmware/src/launcher/FFmLauncher/` → `Applications/launch`
+- `firmware/src/media_service/` → `Applications/ai_media_service`
 
 ---
 
@@ -187,25 +191,17 @@ hardware/
 
 ### 📦 resources/ - 资源文件
 
-项目资源文件，包括媒体文件、脚本、工具等。
+项目媒体资源文件。
 
 ```
 resources/
-├── media/                     # 媒体资源
-│   ├── 外观示例.png          # 产品外观图
-│   ├── 视频通话示例.mp4      # 演示视频
-│   └── [其他图片和视频]
-│
-├── scripts/                   # 系统脚本
-│   ├── S99wifi               # WiFi启动脚本
-│   ├── start_wifi.sh         # WiFi连接脚本
-│   ├── expect.sh             # 自动化交互脚本
-│   ├── wpa_supplicant.conf   # WiFi配置文件
-│   └── adb push.txt          # ADB部署说明
-│
-└── tools/                     # 辅助工具
-    └── [expect工具及依赖]    # 自动化交互工具
+└── media/                     # 媒体资源
+    ├── 外观示例.png          # 产品外观图
+    ├── 视频通话示例.mp4      # 演示视频
+    └── [其他图片和视频]
 ```
+
+> **注意**: 系统脚本和工具已移至 `firmware/scripts/` 和 `firmware/tools/`
 
 ---
 
@@ -294,7 +290,7 @@ OpenSource-Ai-Glasses/
 ├── PROJECT_STRUCTURE.md       # This document
 │
 ├── docs/                      # 📚 Documentation
-├── firmware/                  # 🔧 Firmware source code
+├── firmware/                  # 🔧 Firmware development
 ├── examples/                  # 📝 Example programs
 ├── hardware/                  # ⚙️ Hardware files
 ├── resources/                 # 📦 Resource files
@@ -306,14 +302,20 @@ OpenSource-Ai-Glasses/
 
 Project documentation including user guides, development docs, and API references.
 
-### 🔧 firmware/ - Firmware Source Code
+### 🔧 firmware/ - Firmware Development
 
-Core firmware programs that need to be compiled in Rockchip RV1106B SDK environment.
+All firmware-related content including source code, scripts, and tools. Needs to be compiled in Rockchip RV1106B SDK environment.
 
 **Structure**:
-- `display/` - JBD display driver with LVGL UI
-- `launcher/` - FFmpeg and touchpad managers
-- `media_service/` - WiFi media sync service
+```
+firmware/
+├── src/                      # Application source code
+│   ├── display/             # JBD display driver with LVGL UI
+│   ├── launcher/            # FFmpeg and touchpad managers
+│   └── media_service/       # WiFi media sync service
+├── scripts/                  # System scripts
+└── tools/                    # Utility tools
+```
 
 ### 📝 examples/ - Example Programs
 
@@ -329,10 +331,10 @@ Hardware design files including 3D printing models.
 
 ### 📦 resources/ - Resource Files
 
-Project resources:
+Project media resources:
 - `media/` - Product photos and demo videos
-- `scripts/` - System scripts (WiFi, startup, etc.)
-- `tools/` - Utility tools
+
+> **Note**: System scripts and tools have been moved to `firmware/scripts/` and `firmware/tools/`
 
 ### 💾 Applications/ - Pre-compiled Programs
 
@@ -345,7 +347,7 @@ Pre-compiled executables (optional, can compile from source).
 ### Firmware Development
 
 1. **Setup**: Follow [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md)
-2. **Modify**: Edit source code in `firmware/` directory
+2. **Modify**: Edit source code in `firmware/src/` directory
 3. **Compile**: Build in Docker environment
 4. **Flash**: Refer to [Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md)
 
