@@ -96,6 +96,41 @@ docker run -it \
 | **重量** | 43g |
 | **续航** | 听歌3小时，显示4小时，录像45分钟 |
 
+## 🏗️ 系统架构
+
+<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/d03538c1-3e09-415f-ae2c-9dd26f1a42e5" />
+
+
+## 📚 文档
+
+- [📖 完整文档](docs/README.md)
+- [🚀 入门指南](docs/tutorials/beginner/getting-started.md)
+- [🐳 Docker部署指南](docs/DOCKER_DEPLOYMENT.md) | [English](docs/DOCKER_DEPLOYMENT.en.md)
+- [💻 应用开发指南](docs/APPLICATION_DEVELOPMENT.md) | [English](docs/APPLICATION_DEVELOPMENT.en.md)
+- [⚡ 固件烧录指南](docs/FIRMWARE_FLASHING.md) | [English](docs/FIRMWARE_FLASHING.en.md)
+- [🔧 硬件规格](docs/hardware/specifications.md)
+- [💾 固件开发](docs/firmware/getting-started.md)
+- [🔍 故障排除](docs/troubleshooting/common-issues.md)
+
+## 🛠️ 开发
+
+### 从源码构建
+
+```bash
+# 安装依赖
+待完善
+```
+
+### 开发工具
+
+- **IDE**: VS Code with C/C++ extension
+
+### API概述
+
+```c
+待完善
+```
+
 ## 🎯 应用场景
 
 ### 🏥 医疗应用
@@ -180,41 +215,6 @@ docker run -it \
 新员工可依靠AR指导快速上岗，减少培训成本和出错率。老师傅的最佳实践和操作技巧也能通过AR流程固化下来，实现高效的知识传承和标准化作业。
 
 </details>
-
-## 🏗️ 系统架构
-
-<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/d03538c1-3e09-415f-ae2c-9dd26f1a42e5" />
-
-
-## 📚 文档
-
-- [📖 完整文档](docs/README.md)
-- [🚀 入门指南](docs/tutorials/beginner/getting-started.md)
-- [🐳 Docker部署指南](docs/DOCKER_DEPLOYMENT.md) | [English](docs/DOCKER_DEPLOYMENT.en.md)
-- [💻 应用开发指南](docs/APPLICATION_DEVELOPMENT.md) | [English](docs/APPLICATION_DEVELOPMENT.en.md)
-- [⚡ 固件烧录指南](docs/FIRMWARE_FLASHING.md) | [English](docs/FIRMWARE_FLASHING.en.md)
-- [🔧 硬件规格](docs/hardware/specifications.md)
-- [💾 固件开发](docs/firmware/getting-started.md)
-- [🔍 故障排除](docs/troubleshooting/common-issues.md)
-
-## 🛠️ 开发
-
-### 从源码构建
-
-```bash
-# 安装依赖
-待完善
-```
-
-### 开发工具
-
-- **IDE**: VS Code with C/C++ extension
-
-### API概述
-
-```c
-待完善
-```
 
 ## 🤝 贡献
 

@@ -94,6 +94,70 @@ See [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) for details.
 | **Weight** | 43g |
 | **Battery Life** | 3hr music, 4hr display, 45min recording |
 
+## 🏗️ System Architecture
+
+<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/79d7c2cd-09e7-43ab-b8d6-11b6b64cd5e0" />
+
+
+## 📚 Documentation
+
+- [📖 Complete Documentation](docs/README.md)
+- [🚀 Getting Started Guide](docs/tutorials/beginner/getting-started.md)
+- [🐳 Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) | [中文](docs/DOCKER_DEPLOYMENT.md)
+- [💻 Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) | [中文](docs/APPLICATION_DEVELOPMENT.md)
+- [⚡ Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) | [中文](docs/FIRMWARE_FLASHING.md)
+- [🔧 Hardware Specifications](docs/hardware/specifications.md)
+- [💾 Firmware Development](docs/firmware/getting-started.md)
+- [🔍 Troubleshooting](docs/troubleshooting/common-issues.md)
+
+## 🛠️ Development
+
+### Build from Source
+
+```bash
+# Install dependencies
+sudo apt-get update
+sudo apt-get install build-essential git cmake
+
+# Clone and build
+git clone https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses.git
+cd OpenSource-Ai-Glasses
+mkdir build && cd build
+cmake ..
+make -j4
+
+# Flash to device
+sudo make flash
+```
+
+### Development Tools
+
+- **IDE**: VS Code with C/C++ extension
+- **Debugger**: GDB + OpenOCD
+- **Profiler**: perf, valgrind
+- **Version Control**: Git
+
+### API Overview
+
+```c
+#include "ai_glasses_api.h"
+
+// Initialize device
+int device_init(device_config_t *config);
+
+// Capture photo
+int capture_photo(const char *filename);
+
+// Display text
+int display_text(const char *text, int x, int y);
+
+// Play audio
+int play_audio(const char *filename);
+
+// Get sensor data
+int get_sensor_data(sensor_data_t *data);
+```
+
 ## 🎯 Use Cases
 
 ### 🏥 Medical Applications
@@ -178,70 +242,6 @@ When operators have both hands occupied, they can control the guidance process p
 New employees can quickly get started with AR guidance, reducing training costs and error rates. Best practices and operating techniques of experienced workers can also be solidified through AR processes for efficient knowledge transfer and standardized operations.
 
 </details>
-
-## 🏗️ System Architecture
-
-<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/79d7c2cd-09e7-43ab-b8d6-11b6b64cd5e0" />
-
-
-## 📚 Documentation
-
-- [📖 Complete Documentation](docs/README.md)
-- [🚀 Getting Started Guide](docs/tutorials/beginner/getting-started.md)
-- [🐳 Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) | [中文](docs/DOCKER_DEPLOYMENT.md)
-- [💻 Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) | [中文](docs/APPLICATION_DEVELOPMENT.md)
-- [⚡ Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) | [中文](docs/FIRMWARE_FLASHING.md)
-- [🔧 Hardware Specifications](docs/hardware/specifications.md)
-- [💾 Firmware Development](docs/firmware/getting-started.md)
-- [🔍 Troubleshooting](docs/troubleshooting/common-issues.md)
-
-## 🛠️ Development
-
-### Build from Source
-
-```bash
-# Install dependencies
-sudo apt-get update
-sudo apt-get install build-essential git cmake
-
-# Clone and build
-git clone https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses.git
-cd OpenSource-Ai-Glasses
-mkdir build && cd build
-cmake ..
-make -j4
-
-# Flash to device
-sudo make flash
-```
-
-### Development Tools
-
-- **IDE**: VS Code with C/C++ extension
-- **Debugger**: GDB + OpenOCD
-- **Profiler**: perf, valgrind
-- **Version Control**: Git
-
-### API Overview
-
-```c
-#include "ai_glasses_api.h"
-
-// Initialize device
-int device_init(device_config_t *config);
-
-// Capture photo
-int capture_photo(const char *filename);
-
-// Display text
-int display_text(const char *text, int x, int y);
-
-// Play audio
-int play_audio(const char *filename);
-
-// Get sensor data
-int get_sensor_data(sensor_data_t *data);
-```
 
 ## 🤝 Contributing
 
