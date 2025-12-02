@@ -11,10 +11,11 @@
 [文档中心](docs/README.md) • [快速入门](docs/tutorials/beginner/getting-started.md) • [API参考](docs/firmware/api-reference.md) • [社区](docs/community/contributing.md)
 
 ---
+<img width="1024" height="747" alt="image" src="https://github.com/user-attachments/assets/af4de9f5-f502-4a74-8a2a-f5a762ff83b9" />
 
 ## 📋 项目概述
 
-这是一个基于Linux的开源智能眼镜工程，目前处于早期阶段，文档完善度5%。
+这是一个基于Linux的开源智能眼镜工程，目前处于早期阶段，文档完善度20%。
 
 **联系作者**: iam5stilllearning@foxmail.com
 
@@ -63,7 +64,7 @@ docker cp rk1106_dev:/opt/aiglass_dev_env/output/image/update.img ./update.img
 # 拉取bare镜像
 docker pull aiglasses/rk-rv1106b-bare:ready
 
-# 运行并挂载系统SDK目录
+# 运行并挂载操作系统SDK目录
 docker run -it \
   -v /path/to/system_sdk/rv1106b_rv1103b_linux_ipc_v1.0.0_20241016:/opt/aiglass_dev_env \
   --name rk1106_dev_bare \
@@ -72,7 +73,7 @@ docker run -it \
 
 > **提示**: Bare镜像适合使用宿主机IDE（VS Code、Claude Code、Cursor等）进行固件开发，可以享受代码智能提示、AI辅助编程等功能，固件代码修改实时同步到容器。
 
-> **说明**: 这里的"系统SDK"是指用于固件开发的 `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016`，不是应用开发SDK。应用开发SDK会单独提供。
+> **说明**: 这里的"操作系统SDK"是指用于固件开发的 `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016`，不是应用开发SDK。应用开发SDK会单独提供。
 
 详细说明请查看 [Docker部署指南](docs/DOCKER_DEPLOYMENT.md)
 
@@ -183,51 +184,8 @@ docker run -it \
 
 ## 🏗️ 系统架构
 
-```mermaid
-┌─────────────────────────────────────────────┐
-│                应用层 (Application Layer)    │
-│   · 应用A                                    │
-│   · 应用B                                    │
-│   · 应用C                                    │
-└─────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────┐
-│            应用 SDK 层 (ai_client_sdk)      │
-│   · 提供统一接口：拍照、录音、播放、GPIO等     │
-│   · 封装设备控制逻辑与系统事件回调             │
-│   · 管理会话与云端AI调用 (ASR/TTS/LLM)        │
-│   · 向应用层隐藏底层复杂度                    │
-└─────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────┐
-│            系统层 (System Layer)            │
-│  ├── Audio Manager：音频录制与播放           │
-│  ├── Camera Manager：拍照与图像缓存          │
-│  ├── GPIO Manager：按键与信号控制             │
-│  ├── Network Manager：WiFi连接与监控          │
-│  ├── Power Manager：电量/温度监测             │
-│  ├── Guard Service：心跳、重启、电源管理       │
-│  ├── Event Dispatcher：模块事件分发总线       │
-│  ├── Cloud Bridge：AI云服务接口              │
-│      ↳ ASR：语音识别                         │
-│      ↳ TTS：语音合成                         │
-│      ↳ LLM：AI对话与多模态理解               │
-└─────────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────┐
-│         硬件抽象与驱动层 (HAL/Driver Layer)  │
-│  ├── Audio HAL / ALSA / PCM                 │
-│  ├── Camera HAL / V4L2 / ISP / rkaiq        │
-│  ├── GPIO / I2C / SPI / PWM 控制接口         │
-│  ├── WiFi / 蓝牙 / PMIC / ADC 电量检测       │
-│  ├── Sensor Hub：IMU 等传感器   │
-│  ├── Linux Kernel / Buildroot / BusyBox     │
-└─────────────────────────────────────────────┘
+<img width="1200" height="1050" alt="image" src="https://github.com/user-attachments/assets/d03538c1-3e09-415f-ae2c-9dd26f1a42e5" />
 
-```
 
 ## 📚 文档
 
