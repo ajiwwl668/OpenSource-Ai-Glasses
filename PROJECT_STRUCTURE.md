@@ -70,13 +70,13 @@ firmware/
 │   │   ├── ui/              # LVGL UI界面
 │   │   └── Makefile         # 编译配置
 │   │
-│   ├── launcher/             # 启动管理器
-│   │   ├── FFmLauncher/     # FFmpeg和摄像头启动管理
-│   │   └── TouchPadManager/ # 触摸板GPIO管理器
+│   ├── ffm_launcher/         # FFmpeg和摄像头启动管理
+│   │   ├── launch.cpp       # 主程序
+│   │   └── CMakeLists.txt   # CMake配置
 │   │
-│   └── media_service/        # WiFi媒体服务
-│       ├── ai_media_service.c
-│       └── Makefile.ai_media_service
+│   └── touchpad_manager/     # 触摸板GPIO管理器
+│       ├── launch.cpp       # 主程序
+│       └── CMakeLists.txt   # CMake配置
 │
 ├── scripts/                   # 系统脚本
 │   ├── S99wifi               # WiFi启动脚本
@@ -98,31 +98,25 @@ make
 # 生成 build/bin/display
 ```
 
-**launcher程序**：
+**ffm_launcher程序**：
 ```bash
-# FFmLauncher
-cd firmware/src/launcher/FFmLauncher/build-arm
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake
-make
-
-# TouchPadManager
-cd firmware/src/launcher/TouchPadManager/build-arm
+cd firmware/src/ffm_launcher/build-arm
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake
 make
 ```
 
-**media_service**：
+**touchpad_manager程序**：
 ```bash
-cd firmware/src/media_service
-make -f Makefile.ai_media_service
+cd firmware/src/touchpad_manager/build-arm
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm.cmake
+make
 ```
 
 #### 运行说明
 
 编译后的程序对应关系：
 - `firmware/src/display/` → `Applications/display`
-- `firmware/src/launcher/FFmLauncher/` → `Applications/launch`
-- `firmware/src/media_service/` → `Applications/ai_media_service`
+- `firmware/src/ffm_launcher/` → `Applications/launch`
 
 ---
 
@@ -311,8 +305,8 @@ All firmware-related content including source code, scripts, and tools. Needs to
 firmware/
 ├── src/                      # Application source code
 │   ├── display/             # JBD display driver with LVGL UI
-│   ├── launcher/            # FFmpeg and touchpad managers
-│   └── media_service/       # WiFi media sync service
+│   ├── ffm_launcher/        # FFmpeg and camera manager
+│   └── touchpad_manager/    # Touchpad GPIO manager
 ├── scripts/                  # System scripts
 └── tools/                    # Utility tools
 ```
