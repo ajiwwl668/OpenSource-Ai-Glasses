@@ -24,9 +24,8 @@ OpenSource-Ai-Glasses/
 ├── examples/                  # 📝 示例程序
 ├── hardware/                  # ⚙️ 硬件相关文件
 ├── resources/                 # 📦 资源文件
+├── third_party/               # 📦 第三方库（已修改）
 ├── Applications/              # 💾 预编译程序
-├── bluez-5.66/               # 📡 BlueZ蓝牙协议栈源码
-└── ffmpeg-rockchip/          # 🎬 FFmpeg瑞芯微版本源码
 ```
 
 ---
@@ -224,19 +223,25 @@ Applications/
 
 ---
 
-### 📡 bluez-5.66/ - 蓝牙协议栈
+### 📦 third_party/ - 第三方库
 
-BlueZ蓝牙协议栈完整源码（392MB）。
+已修改的第三方开源库源码。
 
-> **注意**: 这是第三方依赖，体积较大。如果只进行应用开发，可以使用Docker镜像，无需下载此目录。
+```
+third_party/
+├── README.md              # 第三方库说明文档
+├── bluez-5.66/           # BlueZ蓝牙协议栈（392MB）
+└── ffmpeg-rockchip/      # 瑞芯微定制FFmpeg（136MB）
+```
 
----
+**说明**:
+- 这些库已针对RV1106B平台进行定制修改
+- 详细信息请查看 [third_party/README.md](../third_party/README.md)
+- 如果只进行应用开发，使用Docker镜像即可，无需编译这些库
 
-### 🎬 ffmpeg-rockchip/ - FFmpeg源码
-
-瑞芯微定制的FFmpeg源码（136MB）。
-
-> **注意**: 这是第三方依赖，体积较大。Docker镜像中已包含编译好的版本。
+**许可证**:
+- BlueZ: GPL v2
+- FFmpeg: LGPL v2.1+ / GPL v2+
 
 ---
 
@@ -293,9 +298,8 @@ OpenSource-Ai-Glasses/
 ├── examples/                  # 📝 Example programs
 ├── hardware/                  # ⚙️ Hardware files
 ├── resources/                 # 📦 Resource files
+├── third_party/               # 📦 Third-party libraries (modified)
 ├── Applications/              # 💾 Pre-compiled binaries
-├── bluez-5.66/               # 📡 BlueZ Bluetooth stack
-└── ffmpeg-rockchip/          # 🎬 FFmpeg Rockchip version
 ```
 
 ### 📚 docs/ - Documentation
