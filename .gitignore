@@ -1,0 +1,51 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.img
+*.bin
+*.elf
+build/
+output/
+*.pyc
+__pycache__/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+core
+*.pid
+
+# Compiled executables (optional - uncomment if you don't want to track them)
+# Applications/ai_client_socket
+# Applications/ai_media_service
+# Applications/display
+# Applications/launch
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+install_manifest.txt
+
+# Docker
+.dockerignore
+
+# System SDK (too large for git, users should download separately)
+# rv1106b_rv1103b_linux_ipc_v1.0.0_20241016/
+
+# Node modules (if any)
+node_modules/
+package-lock.json

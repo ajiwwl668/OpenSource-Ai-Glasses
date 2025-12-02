@@ -32,14 +32,19 @@
 
 ### 1. 获取固件文件
 
-固件编译完成后，从 Docker 容器或本地编译环境中拷贝固件到本机：
+有两种方式可以获得固件：
 
-#### 从 Docker 容器拷贝
+- #### 从 Github 下载
+   ```bash
+   https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/releases
+   ```
 
-```bash
-# 从容器中拷贝固件到本机
-docker cp rk1106_dev:/opt/aiglass_dev_env/output/image/update.img ./update.img
-```
+- #### 自行编译，从 Docker 容器拷贝
+
+   ```bash
+   # 从容器中拷贝固件到本机
+   docker cp rk1106_dev:/opt/aiglass_dev_env/output/image/update.img ./update.img
+   ```
 
 ### 2. 准备烧录工具
 
