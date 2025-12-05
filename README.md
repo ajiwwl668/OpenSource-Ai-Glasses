@@ -1,10 +1,14 @@
 # 🥽 AI Smart Glasses
 
+> [!IMPORTANT]
+> # 🚧 More documentation is being added 🚧
+
+
 **An open-source Linux-based smart glasses platform for medical, industrial, educational, and consumer applications**
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/ezxrdev/OpenSource-Ai-Glasses/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
+[![Version](https://img.shields.io/badge/version-0.5.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20中文-red.svg)](README.zh.md)
 
 [Documentation](docs/README.md) • [Quick Start](docs/tutorials/beginner/getting-started.md) • [API Reference](docs/firmware/api-reference.md) • [Community](docs/community/contributing.md)
@@ -12,9 +16,55 @@
 ---
 <img width="1024" height="747" alt="image" src="https://github.com/user-attachments/assets/af4de9f5-f502-4a74-8a2a-f5a762ff83b9" />
 
+## ✅ Current Version Features (v0.5.0)
+
+**With the current version, you can:**
+
+1. 🤖 **Perform basic AI conversations**
+2. 🛠️ **Set up your own development environment**
+3. 💾 **Develop firmware**
+4. 💻 **Develop software**
+
+<details>
+<summary>📜 Version History summary</summary>
+
+### v0.5.0
+- Implemented complete WiFi provisioning logic
+- Detailed audio prompts
+
+### v0.4.0
+- Encapsulated a SDK based on the core server
+- Developers can implement photo taking, GPIO, recording, etc. based on this SDK
+
+### v0.3.1
+- Implemented system sentinel
+
+### v0.3.0
+- Implemented core server, responsible for photo taking, GPIO, recording, and new AI conversation
+
+### v0.2.3
+- Optimized cable slot layout
+
+### v0.2.2
+- Modified glasses front frame model, reserved position for optical engine and waveguide
+
+### v0.2.1
+- Modified temple model, determined sound cavity and antenna cavity
+
+### v0.2.0
+- First version of frame 3D printing molding
+
+### v0.1.1
+- Massively optimized AI conversation latency, first packet end-to-end latency around 1s
+
+### v0.1.0
+- Implemented basic AI conversation
+
+</details>
+
 ## 📋 Project Overview
 
-This is a Linux-based open-source smart glasses project in early development stage (5% documentation completeness).
+This is a Linux-based open-source smart glasses project in early development stage (45% documentation completeness).
 
 **Contact**: iam5stilllearning@foxmail.com
 
@@ -79,6 +129,27 @@ See [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) for details.
 **Firmware Flashing**: After compilation, please refer to [Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) to flash the firmware to your device.
 
 **Application Development**: The Docker environment provides a complete development toolchain for building user-level applications. See [Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) for details.
+
+
+## 📦 SDK Development
+
+This project provides a complete C/C++ SDK, allowing developers to easily access underlying hardware capabilities and build their own applications.
+
+**SDK Core Features:**
+*   **GPIO Event Subscription**: Low-latency access to button presses and other GPIO events
+*   **Camera Access**: Zero-copy image data retrieval via shared memory
+*   **Audio Playback Control**: control audio playback, supports TTS
+*   **Inter-Process Communication**: Reliable communication based on Unix Domain Sockets
+
+**SDK Location**: [`SDK/ai_glass_sdk`](SDK/ai_glass_sdk)
+
+**Resource Navigation:**
+*   📖 [SDK Documentation](SDK/ai_glass_sdk/README.md) - Detailed SDK instructions and usage
+*   📚 [API Reference](SDK/ai_glass_sdk/docs/README.md) - Detailed API documentation
+*   💡 [Examples](SDK/ai_glass_sdk/examples) - Complete example code for GPIO, camera, audio, etc.
+
+**Integration Guide:**
+Please refer to the "Integration" section in the [SDK README](SDK/ai_glass_sdk/README.md#3-集成到自己的项目) to learn how to link and use the SDK in your application.
 
 ## 📊 Hardware Specifications
 
@@ -299,4 +370,4 @@ Made with ❤️ by the open-source community
 
 **Note**: This project is in early development stage (5% documentation completeness). We're actively seeking contributors and feedback!
 
-**Last Updated**: 2025-10-27 | **Version**: v1.0.0
+**Last Updated**: 2025-12-03 | **Version**: v0.5.0

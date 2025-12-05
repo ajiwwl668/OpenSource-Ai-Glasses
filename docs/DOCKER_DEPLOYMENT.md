@@ -225,11 +225,18 @@ docker exec -it rk1106_dev_bare bash -l
 
 > **重要提示**: 不论使用哪种镜像，进入容器时都必须使用 `-l` 参数（login shell），否则环境变量无法正确加载，将导致编译失败。
 
-### 进入已运行的容器
+### 进入容器
 
-如果容器已经创建并在后台运行，使用以下命令进入开发环境：
+**如果容器正在运行**：
 
 ```bash
+docker exec -it rk1106_dev bash -l
+```
+
+**如果容器已停止**（例如重启电脑后）：
+
+```bash
+docker start rk1106_dev
 docker exec -it rk1106_dev bash -l
 ```
 

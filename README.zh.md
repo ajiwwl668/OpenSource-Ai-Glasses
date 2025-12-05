@@ -1,10 +1,14 @@
 # 🥽 AI智能眼镜
 
+> [!IMPORTANT]
+> # 🚧 更多的资料正在补充中 🚧
+
+
 **一个基于Linux的开源智能眼镜平台，适用于医疗、工业、教育和消费应用**
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/ezxrdev/OpenSource-Ai-Glasses/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20中文-red.svg)](README.md)
 
 [文档中心](docs/README.md) • [快速入门](docs/tutorials/beginner/getting-started.md) • [API参考](docs/firmware/api-reference.md) • [社区](docs/community/contributing.md)
@@ -12,9 +16,57 @@
 ---
 <img width="1024" height="747" alt="image" src="https://github.com/user-attachments/assets/af4de9f5-f502-4a74-8a2a-f5a762ff83b9" />
 
+## ✅ 当前版本概要 (v0.6.0)
+
+- 适配固件版本：v0.6.0。开机会进入网络配置模式，配置完成后可以直接通过长按左侧镜腿按键进行ai对话
+- 全新推出SDK，开发者可以基于SDK进行应用开发，从而避免了从0开发linux程序的难度，不需要去管理多个硬件的并行操作，不需要去处理ISP、音频设备等等让人困扰的东西，只需要专注于上层业务逻辑。
+    - **GPIO事件订阅**：支持多进程并发监听按键事件，提供异步回调机制，延迟低于13ms
+    - **摄像头高效调用**：基于共享内存的零拷贝图像传输，支持JPEG和NV12格式，支持多客户端同时访问
+    - **音频播放控制**：提供基于Unix Socket的音频控制接口，支持音量调节和采样率配置
+    - **进程间通信**：封装了基于Unix Domain Socket的可靠通信机制
+    - **系统日志**：提供统一的日志接口，包含精确的毫秒级时间戳
+
+<details>
+<summary>📜 版本历史概要</summary>
+
+### v0.5.0
+- 适配固件版本：v0.5.0
+- 实现了完整的WiFi配网逻辑
+- 详细的音频提示
+
+### v0.4.0
+- 基于核心server封装了一套SDK
+- 开发者可以基于这套SDK实现拍照、GPIO、录音等功能
+
+### v0.3.1
+- 实现了系统哨兵
+
+### v0.3.0
+- 实现了核心server，负责拍照、GPIO、录音以及新版的AI对话
+
+### v0.2.3
+- 优化排线槽布局
+
+### v0.2.2
+- 修改眼镜前框模型，预留光机位置和波导片位置
+
+### v0.2.1
+- 修改镜腿模型，确定音腔和天线腔
+
+### v0.2.0
+- 第一版镜框3D打印成型
+
+### v0.1.1
+- 大量优化了AI对话的延迟，首包端到端延迟1s左右
+
+### v0.1.0
+- 实现了基础的AI对话
+
+</details>
+
 ## 📋 项目概述
 
-这是一个基于Linux的开源智能眼镜工程，目前处于早期阶段，文档完善度20%。
+这是一个基于Linux的开源智能眼镜工程，目前处于早期阶段，文档完善度45%。
 
 **联系作者**: iam5stilllearning@foxmail.com
 
@@ -74,6 +126,8 @@ docker run -it \
 
 > **说明**: 这里的"操作系统SDK"是指用于固件开发的 `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016`，不是应用开发SDK。应用开发SDK会单独提供。
 
+> **提示**: 如果您需要重新进入已退出的容器，请运行 `docker start rk1106_dev` 启动容器，然后使用 `docker exec -it rk1106_dev bash -l` 进入。
+
 详细说明请查看 [Docker部署指南](docs/DOCKER_DEPLOYMENT.md)
 
 **固件烧录**: 固件编译完成后，请参考 [固件烧录指南](docs/FIRMWARE_FLASHING.md) 将固件烧录到设备。
@@ -81,6 +135,27 @@ docker run -it \
 **应用开发**: Docker环境提供了完整的开发工具链，可用于开发用户级应用程序。详细说明请查看 [应用开发指南](docs/APPLICATION_DEVELOPMENT.md)。
 
 
+
+
+## 📦 SDK开发
+
+本项目提供了一套完整的C/C++ SDK，开发者可以基于此SDK轻松调用底层的硬件能力，开发自己的应用程序。
+
+**SDK核心功能：**
+*   **GPIO事件订阅**：低延迟获取按键等GPIO事件
+*   **摄像头调用**：通过共享内存零拷贝获取图像数据
+*   **音频播放控制**：控制音频播放，支持TTS
+*   **进程间通信**：基于Unix Domain Socket的可靠通信
+
+**SDK位置**：[`SDK/ai_glass_sdk`](SDK/ai_glass_sdk)
+
+**资源导航：**
+*   📖 [SDK说明文档](SDK/ai_glass_sdk/README.md) - SDK的详细说明和使用方法
+*   📚 [API参考文档](SDK/ai_glass_sdk/docs/README.md) - 详细的API说明
+*   💡 [示例程序](SDK/ai_glass_sdk/examples) - 包含GPIO、摄像头、音频等功能的完整示例代码
+
+**集成指南：**
+请参考 [SDK README](SDK/ai_glass_sdk/README.md#3-集成到自己的项目) 中的"集成到自己的项目"章节，了解如何在您的应用中链接和使用SDK。
 
 ## 📊 硬件规格
 
@@ -272,4 +347,4 @@ docker run -it \
 
 **注意**: 本项目处于早期开发阶段（文档完整度5%）。我们积极寻求贡献者和反馈！
 
-**最后更新**: 2025-12-1 | **版本**: v1.0.0
+**最后更新**: 2025-12-05 | **版本**: v0.6.0
