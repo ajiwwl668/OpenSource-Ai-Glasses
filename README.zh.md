@@ -68,7 +68,7 @@
 
 这是一个基于Linux的开源智能眼镜工程，目前处于早期阶段，文档完善度45%。
 
-**联系作者**: iam5stilllearning@foxmail.com
+**联系作者**: iam5tilllearning@foxmail.com
 
 **语言**: 中文版本 | [English Version](README.md)
 
