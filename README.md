@@ -8,7 +8,7 @@
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/ezxrdev/OpenSource-Ai-Glasses/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-green.svg)](https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses/releases)
 [![Language](https://img.shields.io/badge/language-English%20%7C%20中文-red.svg)](README.zh.md)
 
 [Documentation](docs/README.md) • [Quick Start](docs/tutorials/beginner/getting-started.md) • [API Reference](docs/firmware/api-reference.md) • [Community](docs/community/contributing.md)
@@ -16,19 +16,28 @@
 ---
 <img width="1024" height="747" alt="image" src="https://github.com/user-attachments/assets/af4de9f5-f502-4a74-8a2a-f5a762ff83b9" />
 
-## ✅ Current Version Features (v0.5.0)
+## ✅ Current Version Features (v0.6.0)
 
-**With the current version, you can:**
-
-1. 🤖 **Perform basic AI conversations**
-2. 🛠️ **Set up your own development environment**
-3. 💾 **Develop firmware**
-4. 💻 **Develop software**
+- **Firmware Version: v0.6.0**
+  - Enters network configuration mode on boot. After configuration, long press the left temple button to start AI conversation.
+- **New SDK Available**: Developers can develop applications based on the SDK, avoiding the difficulty of developing Linux programs from scratch. No need to manage parallel hardware operations or deal with ISP/audio devices. Focus on upper-layer business logic.
+    - **GPIO Event Subscription**: Supports multi-process concurrent listening for button events, providing asynchronous callback mechanism with latency < 13ms.
+    - **Efficient Camera Access**: Zero-copy image transmission based on shared memory, supports JPEG and NV12 formats, supports multi-client concurrent access.
+    - **Audio Playback Control**: Provides audio control interface based on Unix Socket, supports volume adjustment and sample rate configuration.
+    - **Inter-Process Communication**: Encapsulates reliable communication mechanism based on Unix Domain Socket.
+    - **System Logging**: Provides unified logging interface with precise millisecond timestamps.
 
 <details>
 <summary>📜 Version History summary</summary>
 
+### v0.6.0
+- **Firmware Version: v0.6.0**
+- Implemented network configuration mode (auto on boot + 10 short presses).
+- Released SDK for application development.
+- Abstracted hardware, ISP, and audio complexity.
+
 ### v0.5.0
+- Firmware Version: v0.5.0
 - Implemented complete WiFi provisioning logic
 - Detailed audio prompts
 
@@ -124,11 +133,23 @@ docker run -it \
 
 > **Clarification**: The "system SDK" here refers to `rv1106b_rv1103b_linux_ipc_v1.0.0_20241016` for firmware development, not the application development SDK which will be provided separately.
 
+> **Note**: If you need to re-enter an exited container, run `docker start rk1106_dev` to start it, then use `docker exec -it rk1106_dev bash -l` to enter.
+
 See [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.en.md) for details.
 
 **Firmware Flashing**: After compilation, please refer to [Firmware Flashing Guide](docs/FIRMWARE_FLASHING.en.md) to flash the firmware to your device.
 
 **Application Development**: The Docker environment provides a complete development toolchain for building user-level applications. See [Application Development Guide](docs/APPLICATION_DEVELOPMENT.en.md) for details.
+
+
+## 📖 Usage Guide
+
+### 1. Network Configuration
+- **Automatic**: The device automatically enters network configuration mode on boot.
+- **Manual**: At any time, continuously short press the button 10 times to manually enter network configuration mode.
+
+### 2. AI Conversation
+- **Operation**: After configuration, long press the left temple button to speak, release to send, and wait for the AI response.
 
 
 ## 📦 SDK Development
@@ -154,7 +175,7 @@ Please refer to the "Integration" section in the [SDK README](SDK/ai_glass_sdk/R
 ## 📊 Hardware Specifications
 
 | Component | Specification |
-|-----------|---------------|
+|-----------|---------------
 | **Processor** | Single Cortex-A7 core |
 | **Memory** | 32GB storage (configurable) |
 | **Display** | 30°FOV 640×480 monocular (optional) |
@@ -370,4 +391,4 @@ Made with ❤️ by the open-source community
 
 **Note**: This project is in early development stage (5% documentation completeness). We're actively seeking contributors and feedback!
 
-**Last Updated**: 2025-12-03 | **Version**: v0.5.0
+**Last Updated**: 2025-12-05 | **Version**: v0.6.0
